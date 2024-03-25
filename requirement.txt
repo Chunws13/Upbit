@@ -10,6 +10,7 @@ pytz==2024.1
 pyupbit==0.2.33
 requests==2.31.0
 six==1.16.0
+slack_sdk==3.27.1
 tzdata==2024.1
 urllib3==2.2.1
 websockets==12.0
