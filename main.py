@@ -8,6 +8,7 @@ accekey = os.getenv("UPBIT_ACCESS_KEY")
 secretkey= os.getenv("UPBIT_SCCRET_KEY")
 
 user = pyupbit.Upbit(accekey, secretkey)
+print(pyupbit.get_tickers(), len(pyupbit.get_tickers()))
 print(user.get_balances())
 
 chart = pyupbit.get_ohlcv()
