@@ -13,7 +13,6 @@ class Message_Bot:
     def __init__(self, token: str, channel: str, ssl):
         self.bot = WebClient(token=token, ssl=ssl)
         self.channel = channel
-        print(token, channel)
         
     def send_message(self, message: str):
         try:
