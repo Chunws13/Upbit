@@ -10,7 +10,7 @@ def check_bull_market(target_date, invest_number): # 16 seconds
     for ticker in ticker_list:
         if re.match(KRW_CHECKER, ticker):
             ma_flow_info = pyupbit.get_ohlcv_from(ticker=ticker, fromDatetime=from_date, to=target_date)
-
+            
             if ma_flow_info is None:
                 continue
 
@@ -22,8 +22,8 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             
             diff_info = ma_flow_info["close"].diff()
             
-            gain = (diff_info.where(diff_info > 0, 0)).rolling(window=14).mean().shift(1)
-            loss = (-diff_info.where(diff_info < 0, 0)).rolling(window=14).mean().shift(1)
+            gain = (diff_info.where(diff_info > 0, 0)).rolling(window=7).mean().shift(1)
+            loss = (-diff_info.where(diff_info < 0, 0)).rolling(window=7).mean().shift(1)
 
             rsi_data_frame = 100 - (100 / (1 + (gain / loss)))
             rsi = rsi_data_frame.iloc[-1]
@@ -77,7 +77,8 @@ def select_coin_market(bull_market, target_date, invest_number): # 16 seconds
     return result
 
 if __name__ == "__main__":
-    test_coin_list = check_bull_market(datetime.datetime.now(),2)
-    print(test_coin_list)
+    # test_coin_list = check_bull_market(datetime.datetime.now(),2)
+    # print(test_coin_list)
     # test_invest_coint = select_coin_market(bull_market=test_coin_list, target_date=datetime.datetime.now(), invest_number=2)
     # print(test_invest_coint)
+    pass
