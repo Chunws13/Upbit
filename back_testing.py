@@ -32,14 +32,14 @@ class Back_Testing:
         self.start_date = datetime.datetime.now()
 
         for day in range(duration, 0, -1):
-            self.duration.append(self.start_date - datetime.timedelta(days=day))
+            self.duration.append(self.start_date - datetime.timedelta(days=day) - datetime.timedelta(days=180))
         
     def simulate(self):
         for day in self.duration:
             message = f"----- {day.year}-{day.month}-{day.day} 투자 시뮬레이션 -----"
             testing_bot.send_message(message)
 
-            coin_list = check_bull_market(day, 2) # 상승장 코인 검색
+            coin_list = check_bull_market(day, 5) # 상승장 코인 검색
             check_win = self.end_seed
 
             if len(coin_list) == 0:
@@ -50,8 +50,8 @@ class Back_Testing:
                 after_coin_seed = 0
 
                 target_buy = target_buy_amount(coin = coin, target_date = day)
-                time.sleep(0.3)
-                if target_buy is None or math.isnan(target_buy):
+
+                if math.isnan(target_buy):
                     self.error += 1
                     testing_bot.send_message("목표 매수가 불러오기 에러")
                     continue
@@ -61,6 +61,7 @@ class Back_Testing:
                 if coin not in self.coin_history:
                     self.coin_history[coin] = 0
 
+                time.sleep(0.5)
                 chart = pyupbit.get_ohlcv_from(ticker = coin, fromDatetime = day - datetime.timedelta(days=1), to = day)
                 
                 invest_status = False
@@ -86,7 +87,7 @@ class Back_Testing:
                     
                     after_coin_seed = coin_seed + coin_seed * variance
 
-                    testing_bot.send_message(f"수익: {int(after_coin_seed - coin_seed):2,}")
+                    testing_bot.send_message(f"{coin} 수익: {int(after_coin_seed - coin_seed):2,}")
 
                 self.end_seed += after_coin_seed if invest_status else coin_seed
                 self.coin_history[coin]  += after_coin_seed - coin_seed if invest_status else after_coin_seed
@@ -109,6 +110,7 @@ class Back_Testing:
         testing_bot.send_message("코인 별 수익 내역")
         
         for history in self.coin_history:
+            time.sleep(0.5)
             if self.coin_history[history] != 0:
                 testing_bot.send_message(f"{history} : {int(self.coin_history[history]):2,}")
         
@@ -118,7 +120,7 @@ class Back_Testing:
         testing_bot.send_message(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(100000, 180)
+    setting = Back_Testing(100000, 365)
     setting.simulate()
     
     

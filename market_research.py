@@ -1,12 +1,15 @@
-import pyupbit, re, heapq, time, datetime, math
+import pyupbit, re, heapq, time, datetime, math, pandas
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+
 
 def check_bull_market(target_date, invest_number): # 16 seconds
     KRW_CHECKER = "KRW-"
-    from_date = target_date - datetime.timedelta(days=21)
+    from_date = target_date - datetime.timedelta(days=180)
 
     ticker_list = pyupbit.get_tickers()
     bull_market = []
-
+    ticker_list = ["KRW-BTC"]
     for ticker in ticker_list:
         if re.match(KRW_CHECKER, ticker):
             ma_flow_info = pyupbit.get_ohlcv_from(ticker=ticker, fromDatetime=from_date, to=target_date)
@@ -14,71 +17,47 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             if ma_flow_info is None:
                 continue
 
-            ma_flow_info["ma5"] = ma_flow_info["close"].rolling(window=5, min_periods=1).mean().shift(1)
-            ma_flow_info["ma20"] = ma_flow_info["close"].rolling(window=20, min_periods=1).mean().shift(1)
+            ma_flow_info["ma5"] = ma_flow_info["close"].rolling(window=5, min_periods=5).mean().shift(1)
+            ma_flow_info["ma20"] = ma_flow_info["close"].rolling(window=20, min_periods=20).mean().shift(1)
 
-            upward_trend = ma_flow_info["ma5"].iloc[-1] >= ma_flow_info["ma20"].iloc[-1]
-            bull_check = ma_flow_info["open"].iloc[-1] > ma_flow_info["ma5"].iloc[-1]
-            
             diff_info = ma_flow_info["close"].diff()
             
-            gain = (diff_info.where(diff_info > 0, 0)).rolling(window=7).mean().shift(1)
-            loss = (-diff_info.where(diff_info < 0, 0)).rolling(window=7).mean().shift(1)
+            gain = (diff_info.where(diff_info > 0, 0)).rolling(window=14).mean().shift(1)
+            loss = (-diff_info.where(diff_info < 0, 0)).rolling(window=14).mean().shift(1)
+            ma_flow_info["rsi"] = 100 - (100 / (1 + (gain / loss)))
 
-            rsi_data_frame = 100 - (100 / (1 + (gain / loss)))
-            rsi = rsi_data_frame.iloc[-1]
-            
-            if math.isnan(rsi):
-                continue
+            print(ticker, len(ma_flow_info))
+            regression_analysis(ma_flow_info)
 
-            if bull_check and upward_trend:
-                if len(bull_market) < invest_number:
-                    heapq.heappush(bull_market, [-rsi, ticker])
-                    continue
+    return 
 
-                if -rsi > bull_market[0][0]:
-                    heapq.heappush(bull_market, [-rsi, ticker])
-                    heapq.heappop(bull_market)
+def regression_analysis(learning_data): # 1ms under
 
-            time.sleep(0.1)
+    learning_data.dropna(inplace=True)
 
-    result = []
+    independent = learning_data[["open", "ma5", "ma20", "rsi"]]
+    dependent = learning_data["close"]
 
-    while bull_market:
-        rsi, ticker = heapq.heappop(bull_market)
-        result.append(ticker)
 
-    return result
+def regression_actual(independent, dependent):
+    pass
 
-def select_coin_market(bull_market, target_date, invest_number): # 16 seconds
-    investment_target = []
-    from_date = target_date - datetime.timedelta(days=1)
 
-    for bull in bull_market:
-        volume_24H = pyupbit.get_ohlcv_from(ticker=bull, interval="minute60", fromDatetime=from_date, to=target_date)
-        # print(volume_24H)
-        if volume_24H is not None:
-            volume_sum = volume_24H["value"].sum()
-            if len(investment_target) < invest_number:
-                heapq.heappush(investment_target, [volume_sum, bull])
-                continue
+def regression_test(independent, dependent):
+    ind_train, ind_test, de_train, de_test = train_test_split(independent, dependent, test_size=0.2, random_state=40)
 
-            if investment_target[0][0] < volume_sum:
-                heapq.heappop(investment_target)
-                heapq.heappush(investment_target, [volume_sum, bull])
-        
-        time.sleep(0.1)
-    
-    result = []
-    while investment_target:
-        total_price, coin_name = heapq.heappop(investment_target)
-        result.append(coin_name)
+    model = LinearRegression()
 
-    return result
+    model.fit(ind_train, de_train)
+    predict = model.predict(ind_test)
+
+    result = pandas.DataFrame({'Actual': de_test, "Predic": map(int, predict)})
+    result["diff_number"] = result["Predic"] - result["Actual"]
+    result["diff"] = abs(result["Predic"] - result["Actual"]) / result["Actual"] * 100
+
+    print(result["diff"].mean(), result["diff"].max(), result["diff"].min(), result["diff_number"].sum(), model.coef_)
+
 
 if __name__ == "__main__":
-    # test_coin_list = check_bull_market(datetime.datetime.now(),2)
-    # print(test_coin_list)
-    # test_invest_coint = select_coin_market(bull_market=test_coin_list, target_date=datetime.datetime.now(), invest_number=2)
-    # print(test_invest_coint)
-    pass
+   check_bull_market(target_date=datetime.datetime.now(), invest_number=1)
+   pass
