@@ -1,4 +1,4 @@
-import pyupbit, os, datetime, math, time
+import pyupbit, os, datetime, math, time, requests, uuid, jwt
 from dotenv import load_dotenv
 from investment_strategy import target_buy_amount
 from market_research import check_bull_market
@@ -13,7 +13,7 @@ class Upbit_User:
     def __init__(self, access_key, secret_key):
         self.user = pyupbit.Upbit(access_key, secret_key)
 
-        self.balance = user.get_balance()
+        self.balance = self.user.get_balance()
         self.coin = {}
 
         self.research_status = False # 시장 분석 완료 여부
@@ -77,19 +77,22 @@ class Upbit_User:
 
 
 if __name__ == "__main__":
-    user = Upbit_User(access_key=access_key, secret_key=secret_key)
-    print(user.balance())
+    # user = Upbit_User(access_key=access_key, secret_key=secret_key)
+    user = pyupbit.Upbit(access_key, secret_key)
+    
+    server_url = "https://api.upbit.com"
+    
+    payload = {
+    'access_key': access_key,
+    'nonce': str(uuid.uuid4()),
+    }
 
+    jwt_token = jwt.encode(payload, secret_key)
+    authorization = 'Bearer {}'.format(jwt_token)
+    headers = {
+    'Authorization': authorization,
+    }
 
-# print(pyupbit.get_tickers(), len(pyupbit.get_tickers()))
-
-# chart = pyupbit.get_ohlcv()
-# chart['high_low_range'] = chart['high'] - chart['low']
-# chart['volatility'] = chart['high_low_range'].rolling(window=20).mean()
-
-# # 노이즈 계산 ( 1- 절대값(시가 - 종가) / (고가 - 저가) )
-# chart['noise'] = 1 - abs(chart['open'] - chart['close']) / (chart['high'] - chart['low'])
-# # 노이즈 20일 평균
-# chart['noise_ma20'] = chart['noise'].rolling(window=20).mean().shift(1)
-
-# print(chart)
+    res = requests.get(server_url + '/v1/accounts', headers=headers)
+    print(res.json())
+    # print(user.get_balances())
