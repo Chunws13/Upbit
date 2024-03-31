@@ -32,7 +32,7 @@ class Back_Testing:
         self.start_date = datetime.datetime.now()
 
         for day in range(duration, 0, -1):
-            self.duration.append(self.start_date - datetime.timedelta(days=day) - datetime.timedelta(days=180))
+            self.duration.append(self.start_date - datetime.timedelta(days=day))
         
     def simulate(self):
         for day in self.duration:
@@ -54,6 +54,9 @@ class Back_Testing:
                 if math.isnan(target_buy):
                     self.error += 1
                     testing_bot.send_message("목표 매수가 불러오기 에러")
+                    continue
+                
+                if target_buy >= coin_list[coin]:
                     continue
 
                 self.end_seed -= coin_seed
@@ -77,8 +80,8 @@ class Back_Testing:
                 high_price = int(chart["high"].iloc[-1])
                 close_price = int(chart["close"].iloc[-1])
 
-                # message = f"{coin}\n목표가: {round(target_buy, 2):2,} \n최고가: {round(high_price,2):2,}\n종료가: {round(close_price,2):2,}"
-                # testing_bot.send_message(message)
+                message = f"{coin}\n목표가: {round(target_buy, 2):2,} \n최고가: {round(high_price,2):2,}\n종료가: {round(close_price,2):2,}"
+                testing_bot.send_message(message)
 
                 if chart["high"].iloc[-1] >= target_buy:
                     invest_status = True
@@ -120,7 +123,7 @@ class Back_Testing:
         testing_bot.send_message(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(100000, 365)
+    setting = Back_Testing(100000, 7)
     setting.simulate()
     
     
