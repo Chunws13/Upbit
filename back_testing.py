@@ -51,19 +51,20 @@ class Back_Testing:
 
                 ### 변동성 돌파 전략 도입 시 예상 마감 가격 산정 ###
                  
-                target_buy = target_buy_amount(coin = coin, target_date = day)
+                # target_buy = target_buy_amount(coin = coin, target_date = day)
 
-                if math.isnan(target_buy):
-                    self.error += 1
-                    testing_bot.send_message("목표 매수가 불러오기 에러")
-                    continue
+                # if math.isnan(target_buy):
+                #     self.error += 1
+                #     testing_bot.send_message("목표 매수가 불러오기 에러")
+                #     continue
 
                 # if target_buy >= coin_list[coin]:
                 #     continue
                 
                 ###
-
-                message = f"> {coin} 예상 고가: {round(coin_list[coin],2):2,}"
+                pre_high, pre_low = coin_list[coin]["high"], coin_list[coin]["low"]
+                
+                message = f"> {coin} 예상 고가: {round(pre_high,2):2,} 예상 저가: {round(pre_low, 2):2,}"
                 testing_bot.send_message(message)
 
                 self.end_seed -= coin_seed
@@ -83,27 +84,29 @@ class Back_Testing:
                     testing_bot.send_message(str(coin_list) + " 중 " + coin + "차트 불러오기 에러")
                     continue
                 
-                open_price = chart["open"].iloc[-1]
                 high_price = chart["high"].iloc[-1]
+                low_price = chart["low"].iloc[-1]
                 close_price = chart["close"].iloc[-1]
                 
-                message = f"시가 :{round(open_price,2):2,} \n 고가: {round(high_price,2):2,} \n 종가: {round(close_price,2):2,}"
+                message = f"고가: {round(high_price,2):2,} \n저가: {round(low_price,2):2,} \n종가: {round(close_price,2):2,}"
                 testing_bot.send_message(message)
 
-                # message = f"{coin}\n목표가: {round(target_buy,2):2,}\n최고가: {round(high_price,2):2,}\n종료가: {round(close_price,2):2,}"
-                # testing_bot.send_message(message)
-
-                invest_status = True
-                if chart["high"].iloc[-1] >= coin_list[coin]:
-                    variance =  (coin_list[coin] - open_price) / open_price
+                if low_price <= pre_low:
+                    invest_status = True
+                    
+                    if high_price >= pre_high:
+                        variance =  (pre_high - pre_low) / pre_low
+                        
+                    else:
+                        variance =  (close_price - pre_low) / pre_low
+                    
                     after_coin_seed = coin_seed + coin_seed * variance * 0.9995
 
+                    testing_bot.send_message(f"{coin} 결과: {int(after_coin_seed - coin_seed):2,}")
+                    
                 else:
-                    variance =  (close_price - open_price) / open_price
-                    after_coin_seed = coin_seed + coin_seed * variance * 0.9995
-
-                testing_bot.send_message(f"{coin} 수익: {int(after_coin_seed - coin_seed):2,}")
-
+                    testing_bot.send_message(f"{coin} 결과: 저가 미 도달")
+                    
                 self.end_seed += after_coin_seed if invest_status else coin_seed
                 self.coin_history[coin]  += after_coin_seed - coin_seed if invest_status else after_coin_seed
                 

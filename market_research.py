@@ -27,24 +27,23 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             loss = (-diff_info.where(diff_info < 0, 0)).rolling(window=14).mean().shift(1)
             ma_flow_info["rsi"] = 100 - (100 / (1 + (gain / loss)))
             
-            predict_price, accuracy = regression_actual(ma_flow_info)
+            predict_high, predict_low, accuracy = regression_actual(ma_flow_info)
             # print(ticker, ":", accuracy)
-            open_price = ma_flow_info["open"].iloc[-1]
-            predict_profit = (predict_price - open_price) / open_price * 100
+            predict_profit = (predict_high - predict_low) / predict_low * 100
             
             if accuracy > 0.6 and predict_profit > 0:
                 if len(bull_market) < invest_number:
-                    heapq.heappush(bull_market, [accuracy, predict_price, ticker])
+                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, ticker])
                     continue
                 
                 if predict_profit > bull_market[0][0]:
                     heapq.heappop(bull_market)
-                    heapq.heappush(bull_market, [accuracy, predict_price, ticker])
+                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, ticker])
     
     result = {}  
     while bull_market:
-        predict_profit, predict_price, ticker = heapq.heappop(bull_market)
-        result[ticker] = predict_price
+        accuracy, predict_low, predict_high, ticker = heapq.heappop(bull_market)
+        result[ticker] = {"high": predict_high, "low": predict_low}
             
     return result
 
@@ -56,7 +55,7 @@ def regression_actual(learning_data):
     latest_data = learning_data.iloc[-1]
     
     independent = train_data[["open", "ma5", "ma20", "rsi", "volume7"]]
-    dependent = train_data[["close", "high"]]
+    dependent = train_data[["close", "high", "low"]]
     
     ind_train, ind_test, de_train, de_test = train_test_split(independent, dependent, test_size=0.2, random_state=40)
     
@@ -66,7 +65,8 @@ def regression_actual(learning_data):
     model.fit(ind_train.values, de_train.values)
     estimate = model.predict(ind_test.values)
     
-    estimate_data = pandas.DataFrame({"open": ind_test["open"], "close": de_test["close"], "predict_close": estimate[:, 0], "predict_high": estimate[:, 1]})
+    estimate_data = pandas.DataFrame({"open": ind_test["open"], "close": de_test["close"], 
+                                      "predict_close": estimate[:, 0], "predict_high": estimate[:, 1], "predict_low": estimate[:, 2]})
     
     right_count, predict_count = 0, 0
     for index, data in estimate_data.iterrows():
@@ -81,7 +81,7 @@ def regression_actual(learning_data):
     predict = model.predict(latest_info)
     
     accuracy = right_count / predict_count if predict_count > 0 else 0
-    return [predict[0][1], accuracy]
+    return [predict[0][1], predict[0][2], accuracy]
 
 
 def regression_test(learning_data): # 모델 테스트
