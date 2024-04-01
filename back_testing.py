@@ -32,7 +32,7 @@ class Back_Testing:
         self.start_date = datetime.datetime.now()
 
         for day in range(duration, 0, -1):
-            self.duration.append(self.start_date - datetime.timedelta(days=day))
+            self.duration.append(self.start_date - datetime.timedelta(days=day) - datetime.timedelta(days=30))
         
     def simulate(self):
         for day in self.duration:
@@ -49,15 +49,22 @@ class Back_Testing:
                 coin_seed = int(self.end_seed / len(coin_list))
                 after_coin_seed = 0
 
+                ### 변동성 돌파 전략 도입 시 예상 마감 가격 산정 ###
+                 
                 target_buy = target_buy_amount(coin = coin, target_date = day)
 
                 if math.isnan(target_buy):
                     self.error += 1
                     testing_bot.send_message("목표 매수가 불러오기 에러")
                     continue
+
+                # if target_buy >= coin_list[coin]:
+                #     continue
                 
-                if target_buy >= coin_list[coin]:
-                    continue
+                ###
+
+                message = f"> {coin} 예상 고가: {round(coin_list[coin],2):2,}"
+                testing_bot.send_message(message)
 
                 self.end_seed -= coin_seed
 
@@ -74,23 +81,28 @@ class Back_Testing:
                     self.end_seed += coin_seed
                     
                     testing_bot.send_message(str(coin_list) + " 중 " + coin + "차트 불러오기 에러")
-                    print(chart)
                     continue
-                    
-                high_price = int(chart["high"].iloc[-1])
-                close_price = int(chart["close"].iloc[-1])
-
-                message = f"{coin}\n목표가: {round(target_buy, 2):2,} \n최고가: {round(high_price,2):2,}\n종료가: {round(close_price,2):2,}"
+                
+                open_price = chart["open"].iloc[-1]
+                high_price = chart["high"].iloc[-1]
+                close_price = chart["close"].iloc[-1]
+                
+                message = f"시가 :{round(open_price,2):2,} \n 고가: {round(high_price,2):2,} \n 종가: {round(close_price,2):2,}"
                 testing_bot.send_message(message)
 
-                if chart["high"].iloc[-1] >= target_buy:
-                    invest_status = True
+                # message = f"{coin}\n목표가: {round(target_buy,2):2,}\n최고가: {round(high_price,2):2,}\n종료가: {round(close_price,2):2,}"
+                # testing_bot.send_message(message)
 
-                    variance =  (chart["close"].iloc[-1] - target_buy) / target_buy
-                    
-                    after_coin_seed = coin_seed + coin_seed * variance
+                invest_status = True
+                if chart["high"].iloc[-1] >= coin_list[coin]:
+                    variance =  (coin_list[coin] - open_price) / open_price
+                    after_coin_seed = coin_seed + coin_seed * variance * 0.9995
 
-                    testing_bot.send_message(f"{coin} 수익: {int(after_coin_seed - coin_seed):2,}")
+                else:
+                    variance =  (close_price - open_price) / open_price
+                    after_coin_seed = coin_seed + coin_seed * variance * 0.9995
+
+                testing_bot.send_message(f"{coin} 수익: {int(after_coin_seed - coin_seed):2,}")
 
                 self.end_seed += after_coin_seed if invest_status else coin_seed
                 self.coin_history[coin]  += after_coin_seed - coin_seed if invest_status else after_coin_seed
@@ -123,7 +135,7 @@ class Back_Testing:
         testing_bot.send_message(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(100000, 7)
+    setting = Back_Testing(100000, 180)
     setting.simulate()
     
     
