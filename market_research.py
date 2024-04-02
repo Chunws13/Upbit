@@ -39,7 +39,7 @@ def check_bull_market(target_date, invest_number): # 16 seconds
                 if predict_profit > bull_market[0][0]:
                     heapq.heappop(bull_market)
                     heapq.heappush(bull_market, [accuracy, predict_low, predict_high, ticker])
-    
+                
     result = {}  
     while bull_market:
         accuracy, predict_low, predict_high, ticker = heapq.heappop(bull_market)
