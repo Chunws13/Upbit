@@ -128,6 +128,7 @@ class Upbit_User:
                 while history_db is not None:
                     day -= datetime.timedelta(days=delta)
                     delta -= 1
+                    history_db = db.history.find_one({"date": f"{day.year}-{day.month}-{day.day}"})
 
                 db.history.update_one({"date": f"{day.year}-{day.month}-{day.day}"}, 
                                     {"$set": {"profit": history_db["profit"] + profit}})
@@ -139,7 +140,7 @@ class Upbit_User:
     def start(self):
         try:
             while True:
-                if datetime.datetime.now().hour == 9 and datetime.datetime.now().second <= 5:
+                if datetime.datetime.now().hour == 9 and datetime.datetime.now().minute == 0 and datetime.datetime.now().second <= 5:
                     for coin in self.coin:
                         realtime_price = pyupbit.get_current_price(coin)
                         self.sell_coin(coin, realtime_price, self.today)
