@@ -1,6 +1,5 @@
-import pyupbit, os, datetime, math, time, ssl, certifi
+import pyupbit, os, datetime, time, ssl, certifi
 from dotenv import load_dotenv
-from investment_strategy import target_buy_amount
 from market_research import check_bull_market
 from mongodb_connect import MongodbConntect
 from message_bot import Message_Bot
@@ -164,7 +163,12 @@ class Upbit_User:
                     self.start_research(day = self.today)
 
                 for coin in self.coin:
-                    realtime_price = pyupbit.get_current_price(coin)
+                    try:
+                        realtime_price = pyupbit.get_current_price(coin)
+                    
+                    except:
+                        # 현재 가격 요청 에러 확인, 에러 발생시 한번 건너뛰기
+                        continue
 
                     if self.coin[coin]["invest"]: # 투자 중 일 때
                         if realtime_price >= self.coin[coin]["sell_price"]:
@@ -174,11 +178,11 @@ class Upbit_User:
                         if realtime_price <= self.coin[coin]["buy_price"]:
                             self.buy_coin(coin, realtime_price, self.budget // self.investment_size)
 
-                    time.sleep(0.5)
+                    time.sleep(1)
 
         except Exception as error:
             messanger.send_message(f"오류 발생으로 중단됩니다. \n{error}")
-
+        
 if __name__ == "__main__":
     Upbit_User(access_key=access_key, secret_key=secret_key).start()
     # print(pyupbit.Upbit(access_key, secret_key).get_balance("KRW-STRAX"))
