@@ -1,4 +1,4 @@
-import pyupbit, os, datetime, time, ssl, certifi
+import pyupbit, os, datetime, time, ssl, certifi, traceback
 from dotenv import load_dotenv
 from market_research import check_bull_market
 from mongodb_connect import MongodbConntect
@@ -94,7 +94,7 @@ class Upbit_User:
         if result is not None:
             self.coin[coin]["buy_price"] = realtime_price
             self.coin[coin]["invest"] = True
-            self.coin[coin]["invest_price"] = invest_price
+            self.coin[coin]["invest_price"] = invest_price * 0.9995
             
             db.asset.update_one({"title": "coin_asset"}, {"$set": {"own": self.coin}})
 
@@ -107,7 +107,7 @@ class Upbit_User:
 
             result =  self.user.sell_market_order(coin, coin_amount)
             if result is not None:
-                profit = realtime_price * coin_amount - self.coin[coin]["invest_price"]
+                profit = (realtime_price * coin_amount) * 0.9995 - self.coin[coin]["invest_price"]
                 messanger.send_message(f">{coin} 판매금액: {round(realtime_price,1)} 수익: {round(profit,1)}")
 
                 ### 코인 투자 내역 갱신
@@ -124,7 +124,7 @@ class Upbit_User:
                 ### 투자 이력 갱신
                 delta = 1
                 history_db = db.history.find_one({"date": f"{day.year}-{day.month}-{day.day}"})
-                while history_db is not None:
+                while history_db is None:
                     day -= datetime.timedelta(days=delta)
                     delta -= 1
                     history_db = db.history.find_one({"date": f"{day.year}-{day.month}-{day.day}"})
@@ -132,6 +132,9 @@ class Upbit_User:
                 db.history.update_one({"date": f"{day.year}-{day.month}-{day.day}"}, 
                                     {"$set": {"profit": history_db["profit"] + profit}})
 
+        return coin
+
+    def delete_coin_info(self, coin):
         ### 코인 보유 목록 삭제
         del self.coin[coin]
         db.asset.update_one({"title": "coin_asset"}, {"$set": {"own": self.coin}})
@@ -140,9 +143,15 @@ class Upbit_User:
         try:
             while True:
                 if datetime.datetime.now().hour == 9 and datetime.datetime.now().minute == 0 and datetime.datetime.now().second <= 5:
+                    delete_list = []
+                    
                     for coin in self.coin:
                         realtime_price = pyupbit.get_current_price(coin)
-                        self.sell_coin(coin, realtime_price, self.today)
+                        coin_result = self.sell_coin(coin, realtime_price, self.today)
+                        delete_list.append(coin_result)
+                    
+                    for delete in delete_list:
+                        self.delete_coin_info(delete)
 
                     invest_stop_signal = self.adjust_budget()
                     
@@ -181,7 +190,7 @@ class Upbit_User:
                     time.sleep(1)
 
         except Exception as error:
-            messanger.send_message(f"오류 발생으로 중단됩니다. \n{error}")
+            messanger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
         
 if __name__ == "__main__":
     Upbit_User(access_key=access_key, secret_key=secret_key).start()
