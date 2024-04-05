@@ -105,10 +105,12 @@ class Upbit_User:
         if self.coin[coin]["invest"]:
             coin_amount = self.user.get_balance(coin)
 
-            result =  self.user.sell_market_order(coin, coin_amount)
+            result = self.user.sell_market_order(coin, coin_amount)
             if result is not None:
-                profit = (realtime_price * coin_amount) * 0.9995 - self.coin[coin]["invest_price"]
-                messanger.send_message(f">{coin} 판매금액: {round(realtime_price,1)} 수익: {round(profit,1)}")
+                sell_market_price = (realtime_price * coin_amount) * 0.9995 
+                profit = sell_market_price - self.coin[coin]["invest_price"]
+
+                messanger.send_message(f">{coin} 판매금액: {round(sell_market_price, 1)} 수익: {round(profit, 1)}")
 
                 ### 코인 투자 내역 갱신
                 coin_db = db.coin.find_one({"name": coin})
@@ -199,5 +201,4 @@ class Upbit_User:
         
 if __name__ == "__main__":
     Upbit_User(access_key=access_key, secret_key=secret_key).start()
-    # print(pyupbit.Upbit(access_key, secret_key).get_balance("KRW-STRAX"))
-    # print(db.memo.find({"title": "coin_asset"}))
+    
