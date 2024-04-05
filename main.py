@@ -171,6 +171,7 @@ class Upbit_User:
 
                     self.start_research(day = self.today)
 
+                delete_list = []
                 for coin in self.coin:
                     try:
                         realtime_price = pyupbit.get_current_price(coin)
@@ -181,13 +182,17 @@ class Upbit_User:
 
                     if self.coin[coin]["invest"]: # 투자 중 일 때
                         if realtime_price >= self.coin[coin]["sell_price"]:
-                            self.sell_coin(coin, realtime_price, self.today)
+                            sell_complete = self.sell_coin(coin, realtime_price, self.today)
+                            delete_list.append(sell_complete)
                     
                     else: # 투자 전 일 때
                         if realtime_price <= self.coin[coin]["buy_price"]:
                             self.buy_coin(coin, realtime_price, self.budget // self.investment_size)
 
                     time.sleep(1)
+                
+                for delete in delete_list:
+                    self.delete_coin_info(delete)
 
         except Exception as error:
             messanger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
