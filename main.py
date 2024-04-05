@@ -201,4 +201,3 @@ class Upbit_User:
         
 if __name__ == "__main__":
     Upbit_User(access_key=access_key, secret_key=secret_key).start()
-    
