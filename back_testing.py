@@ -16,8 +16,6 @@ testing_bot = Message_Bot(token=token, channel=channel, ssl = ssl_context)
 
 class Back_Testing:
     def __init__(self, seed, duration):
-        self.duration = []
-
         self.start_seed = seed
         self.end_seed = seed
 
@@ -29,18 +27,21 @@ class Back_Testing:
 
         self.coin_history = {}
         self.error = 0
-        self.start_date = datetime.datetime(2024, 5, 14)
+        self.start_date = datetime.datetime(2024, 5, 16)
 
+        self.duration = []
         for day in range(duration, 0, -1):
             self.duration.append(self.start_date - datetime.timedelta(days=day))
-    
+
+        self.duration.append(self.start_date)
+
     def view_hour_chart(self, ticker, low, high, day):
         invest_status = False
         
         low_index, high_index = math.inf, 0
 
         chart = pyupbit.get_ohlcv_from(ticker = ticker,
-                                       fromDatetime = day, to = day + datetime.timedelta(days=1), 
+                                       fromDatetime = day - datetime.timedelta(days=1), to = day, 
                                        interval="minute60")
         
         for index in range(9, len(chart)):
@@ -114,7 +115,7 @@ class Back_Testing:
         print(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(399574, 180)
+    setting = Back_Testing(400000, 180)
     setting.simulate()
     
     
