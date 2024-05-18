@@ -2,7 +2,23 @@ import pyupbit, re, heapq, time, datetime, math, pandas
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt # 예측 결과 시각화
+from retrying import retry
 
+@retry(stop_max_attempt_number=5, wait_random_min=1000, wait_random_max=2000)
+def call_ticker_chart(ticker, start, end):
+    chart = pyupbit.get_ohlcv_from(ticker=ticker, fromDatetime=start, to=end)
+    if chart is None:
+        raise
+
+    return chart
+
+def safe_call_ticker_chart(ticker, start, end):
+    try:
+        return call_ticker_chart(ticker, start, end)
+    
+    except:
+        return None
+    
 def check_bull_market(target_date, invest_number): # 16 seconds
     KRW_CHECKER = "KRW-"
     from_date = target_date - datetime.timedelta(days=180)
@@ -11,7 +27,7 @@ def check_bull_market(target_date, invest_number): # 16 seconds
     bull_market = []
     for ticker in ticker_list:
         if re.match(KRW_CHECKER, ticker):
-            ma_flow_info = pyupbit.get_ohlcv_from(ticker=ticker, fromDatetime=from_date, to=target_date)
+            ma_flow_info = safe_call_ticker_chart(ticker, from_date, target_date)
             
             if ma_flow_info is None or len(ma_flow_info) < 180:
                 continue
@@ -44,7 +60,7 @@ def check_bull_market(target_date, invest_number): # 16 seconds
     while bull_market:
         accuracy, predict_low, predict_high, ticker = heapq.heappop(bull_market)
         result[ticker] = {"high": predict_high, "low": predict_low}
-            
+
     return result
 
 
