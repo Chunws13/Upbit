@@ -139,4 +139,4 @@ def regression_test(learning_data): # 모델 테스트
     return right / total
 
 if __name__ == "__main__":
-   print(check_bull_market(target_date=datetime.datetime.now(), invest_number=5))
+   print(check_bull_market(target_date=datetime.datetime(2024,5,18), invest_number=5))
