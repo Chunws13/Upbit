@@ -73,6 +73,7 @@ class Upbit_User:
     
     def start_research(self, day):
         messanger.send_message(f"> {day.year}년 {day.month}월 {day.day}일 투자를 시작 합니다.")
+        day = datetime.datetime(day.year, day.month, day.day)
         target_coin = check_bull_market(target_date = day, invest_number = self.investment_size) # 시장 조사, 상승 예상되는 코인만 반환됨
         
         if len(target_coin) == 0:
