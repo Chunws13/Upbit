@@ -190,7 +190,7 @@ class Upbit_User:
                     
                     else: # 투자 전 일 때
                         if realtime_price <= self.coin[coin]["buy_price"]:
-                            self.buy_coin(coin, realtime_price, self.budget // len(self.coin))
+                            self.buy_coin(coin, realtime_price, self.budget // max(len(self.coin), 2))
 
                     time.sleep(1)
                 
