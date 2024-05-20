@@ -1,6 +1,5 @@
 import pyupbit, re, time, datetime, math
 from market_research import check_bull_market
-from investment_strategy import target_buy_amount
 from dotenv import load_dotenv
 from message_bot import Message_Bot
 import os, ssl, certifi
