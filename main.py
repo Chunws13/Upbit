@@ -63,7 +63,7 @@ class Upbit_User:
             self.investment_size -= 1
         
         while self.budget // self.investment_size > 20000:
-            if self.investment_size == 5:
+            if self.investment_size == 10:
                 return False
             
             self.investment_size += 1
