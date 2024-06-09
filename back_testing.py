@@ -26,7 +26,8 @@ class Back_Testing:
 
         self.coin_history = {}
         self.error = 0
-        self.start_date = datetime.datetime(2024, 5, 16)
+        # self.start_date = datetime.datetime(2024, 5, 16)
+        self.start_date = datetime.datetime(2024, 6, 8)
 
         self.duration = []
         for day in range(duration, 0, -1):
@@ -74,7 +75,7 @@ class Back_Testing:
                     self.coin_history[coin] = 0
 
                 time.sleep(0.5)
-                chart = pyupbit.get_ohlcv_from(ticker = coin, fromDatetime = day - datetime.timedelta(days=1), to = day)
+                chart = pyupbit.get_ohlcv_from(ticker = coin, fromDatetime = day, to = day + datetime.timedelta(days=1))
                 
                 invest_status, sequence = self.view_hour_chart(coin, pre_low, pre_high, day)
                 
@@ -114,7 +115,7 @@ class Back_Testing:
         print(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(400000, 180)
+    setting = Back_Testing(1000000, 180)
     setting.simulate()
     
     

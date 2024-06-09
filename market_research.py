@@ -47,7 +47,7 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             # print(ticker, ":", accuracy)
             predict_profit = (predict_high - predict_low) / predict_low * 100
             
-            if accuracy > 0.6 and predict_profit > 0:
+            if ma_flow_info["ma5"].iloc[-1] > ma_flow_info["ma20"].iloc[-1]:
                 if len(bull_market) < invest_number:
                     heapq.heappush(bull_market, [accuracy, predict_low, predict_high, ticker])
                     continue
@@ -84,19 +84,20 @@ def regression_actual(learning_data):
     estimate_data = pandas.DataFrame({"open": ind_test["open"], "close": de_test["close"], 
                                       "predict_close": estimate[:, 0], "predict_high": estimate[:, 1], "predict_low": estimate[:, 2]})
     
-    right_count, predict_count = 0, 0
-    for index, data in estimate_data.iterrows():
-        if data["predict_close"] - data["open"] > 0:
-            predict_count += 1
+    # right_count, predict_count = 0, 0
+    # for index, data in estimate_data.iterrows():
+    #     if data["predict_close"] - data["open"] > 0:
+    #         predict_count += 1
 
-        if data["predict_close"] - data["open"] > 0 and data["close"] - data["open"] > 0:
-            right_count += 1
+    #     if data["predict_close"] - data["open"] > 0 and data["close"] - data["open"] > 0:
+    #         right_count += 1
 
     ### 당일 종가 예측
     latest_info = latest_data[["open", "ma5", "ma20", "rsi", "volume7"]].values.reshape(1, -1)
     predict = model.predict(latest_info)
     
-    accuracy = right_count / predict_count if predict_count > 0 else 0
+    # accuracy = right_count / predict_count if predict_count > 0 else 0
+    accuracy = ([predict[0][1]] - predict[0][2]) / predict[0][2]
     return [predict[0][1], predict[0][2], accuracy]
 
 
