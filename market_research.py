@@ -1,7 +1,7 @@
 import pyupbit, re, heapq, time, datetime, math, pandas
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-import matplotlib.pyplot as plt # 예측 결과 시각화
+from sklearn.ensemble import RandomForestRegressor
 from retrying import retry
 
 @retry(stop_max_attempt_number=5, wait_random_min=1000, wait_random_max=2000)
@@ -43,23 +43,29 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             loss = (-diff_info.where(diff_info < 0, 0)).rolling(window=14).mean().shift(1)
             ma_flow_info["rsi"] = 100 - (100 / (1 + (gain / loss)))
             
-            predict_high, predict_low, accuracy = regression_actual(ma_flow_info)
+            ma_flow_info['ema12'] = ma_flow_info['close'].ewm(span=12, adjust=False).mean()
+            ma_flow_info['ema26'] = ma_flow_info['close'].ewm(span=26, adjust=False).mean()
+            ma_flow_info['macd'] = ma_flow_info['ema12'] - ma_flow_info['ema26']
+            ma_flow_info['macd_signal'] = ma_flow_info['macd'].ewm(span=9, adjust=False).mean()
+            ma_flow_info['macd_hist'] = ma_flow_info['macd'] - ma_flow_info['macd_signal']
+
+            predict_high, predict_low, predict_close, accuracy = regression_actual(ma_flow_info)
             # print(ticker, ":", accuracy)
             predict_profit = (predict_high - predict_low) / predict_low * 100
             
-            if ma_flow_info["ma5"].iloc[-1] > ma_flow_info["ma20"].iloc[-1]:
-                if len(bull_market) < invest_number:
-                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, ticker])
-                    continue
-                
-                if predict_profit > bull_market[0][0]:
-                    heapq.heappop(bull_market)
-                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, ticker])
+            # if accuracy > 0.6:
+            if len(bull_market) < invest_number:
+                heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
+                continue
+            
+            if predict_profit > bull_market[0][0]:
+                heapq.heappop(bull_market)
+                heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
                 
     result = {}  
     while bull_market:
-        accuracy, predict_low, predict_high, ticker = heapq.heappop(bull_market)
-        result[ticker] = {"high": predict_high, "low": predict_low}
+        accuracy, predict_low, predict_high, predict_close, ticker = heapq.heappop(bull_market)
+        result[ticker] = {"high": predict_high, "low": predict_low, "close": predict_close}
 
     return result
 
@@ -70,7 +76,9 @@ def regression_actual(learning_data):
     train_data = learning_data.iloc[:-1]
     latest_data = learning_data.iloc[-1]
     
-    independent = train_data[["open", "ma5", "ma20", "rsi", "volume7"]]
+    features = ["open", "ma5", "ma20", "rsi", "volume7", "macd", "macd_signal", "macd_hist"]
+
+    independent = train_data[features]
     dependent = train_data[["close", "high", "low"]]
     
     ind_train, ind_test, de_train, de_test = train_test_split(independent, dependent, test_size=0.2, random_state=40)
@@ -93,51 +101,42 @@ def regression_actual(learning_data):
     #         right_count += 1
 
     ### 당일 종가 예측
-    latest_info = latest_data[["open", "ma5", "ma20", "rsi", "volume7"]].values.reshape(1, -1)
+    latest_info = latest_data[features].values.reshape(1, -1)
     predict = model.predict(latest_info)
     
     # accuracy = right_count / predict_count if predict_count > 0 else 0
-    accuracy = ([predict[0][1]] - predict[0][2]) / predict[0][2]
-    return [predict[0][1], predict[0][2], accuracy]
+    accuracy = ([predict[0][0]] - predict[0][2]) / predict[0][2]
+    
+    return [predict[0][1], predict[0][2], predict[0][0], accuracy]
 
 
 def regression_test(learning_data): # 모델 테스트
     learning_data.dropna(inplace=True)
 
-    independent = learning_data[["open", "ma5", "ma20", "rsi", "volume7"]]
-    dependent = learning_data[["close", "high"]]
+    train_data = learning_data.iloc[:-1]
+    latest_data = learning_data.iloc[-1]
+    
+    features = ["open", "ma5", "ma20","rsi", "volume7", "macd", "macd_signal", "macd_hist"]
+
+    independent = train_data[features]
+    dependent = train_data[["close", "high", "low"]]
     
     ind_train, ind_test, de_train, de_test = train_test_split(independent, dependent, test_size=0.2, random_state=40)
 
-    model = LinearRegression()
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
 
-    model.fit(ind_train, de_train)
-    predict = model.predict(ind_test)
-    print(predict)
-    result = pandas.DataFrame({'open': ind_test['open'],'Actual': de_test["high"], "Predict": predict[:,1]})
-    result["diff_number"] = result["Predict"] - result["Actual"]
-    result["diff"] = abs(result["Predict"] - result["Actual"]) / result["Actual"] * 100
-
-    # plt.figure(figsize=(8, 6))
-    # plt.boxplot(result["diff"])
-    # plt.title('Difference between Actual and Predicted (%)')
-    # plt.xlabel('Bitcoin')
-    # plt.ylabel('Difference')
-    # plt.grid(True)
-    # plt.show()
+    model.fit(ind_train.values, de_train.values)
     
-    right, total = 0, 0
-
-    for index, r in result.iterrows():
-        estimate = r["Predict"] - r["open"]
-        real = r["Actual"] - r["open"]
-        if estimate > 0:
-            total += 1
-
-        if estimate > 0 and real > 0:
-            right += 1
+    latest_info = latest_data[features].values.reshape(1, -1)
+    predict = model.predict(latest_info)
     
-    return right / total
+    # accuracy = right_count / predict_count if predict_count > 0 else 0
+    accuracy = ([predict[0][0]] - predict[0][2]) / predict[0][2]
+    
+    return [predict[0][1], predict[0][2], predict[0][0], accuracy]
+
 
 if __name__ == "__main__":
-   print(check_bull_market(target_date=datetime.datetime(2024,6,1), invest_number=10))
+   results = check_bull_market(target_date=datetime.datetime(2024,6,10), invest_number=5)
+   for result in results:
+       print(result, results[result])

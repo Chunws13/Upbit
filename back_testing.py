@@ -27,7 +27,7 @@ class Back_Testing:
         self.coin_history = {}
         self.error = 0
         # self.start_date = datetime.datetime(2024, 5, 16)
-        self.start_date = datetime.datetime(2024, 6, 8)
+        self.start_date = datetime.datetime(2024, 6, 11)
 
         self.duration = []
         for day in range(duration, 0, -1):
@@ -35,9 +35,7 @@ class Back_Testing:
 
         self.duration.append(self.start_date)
 
-    def view_hour_chart(self, ticker, low, high, day):
-        invest_status = False
-        
+    def view_hour_chart(self, ticker, low, high, day):        
         low_index, high_index = math.inf, 0
 
         chart = pyupbit.get_ohlcv_from(ticker = ticker,
@@ -49,11 +47,10 @@ class Back_Testing:
                 high_index = max(high_index, index)
             
             if chart["low"].iloc[index] <= low:
-                invest_status = True
                 low_index = min(low_index, index)
 
         sequence = high_index > low_index
-        return [invest_status, sequence]
+        return sequence
     
     def simulate(self):
         for day in self.duration:
@@ -77,12 +74,15 @@ class Back_Testing:
                 time.sleep(0.5)
                 chart = pyupbit.get_ohlcv_from(ticker = coin, fromDatetime = day, to = day + datetime.timedelta(days=1))
                 
-                invest_status, sequence = self.view_hour_chart(coin, pre_low, pre_high, day)
-                
                 high_price = chart["high"].iloc[-1]
                 low_price = chart["low"].iloc[-1]
                 close_price = chart["close"].iloc[-1]
 
+                invest_status = False
+                if low_price <= pre_low:
+                    invest_status = True
+                    sequence = self.view_hour_chart(coin, pre_low, pre_high, day)
+                
                 if invest_status:
                     if sequence:
                         variance =  (pre_high - pre_low) / pre_low
@@ -95,6 +95,12 @@ class Back_Testing:
                 self.end_seed += after_coin_seed if invest_status else coin_seed
                 self.coin_history[coin]  += after_coin_seed - coin_seed if invest_status else after_coin_seed
                 
+                if invest_status:
+                    print(coin, ":", coin_seed * variance * 0.9995)
+                
+                else:
+                    print(coin, ":", 0)
+
             total_variance = round((self.end_seed - check_win) / check_win * 100, 2)
             self.max_revenu_ratio = max(self.max_revenu_ratio, total_variance)
             self.max_loss_ratio = min(self.max_loss_ratio, total_variance)
