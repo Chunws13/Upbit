@@ -34,6 +34,7 @@ class Upbit_User:
         self.today = datetime.datetime.now()
         self.budget = self.user.get_balance("KRW")
         self.investment_size = 5
+        self.investment_amount = self.budget // 10000 * 10000
 
         messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
         if len(self.coin):
@@ -69,6 +70,8 @@ class Upbit_User:
             self.investment_size += 1
 
         messanger.send_message(f"현재 잔고{round(self.budget, 0):0,} 투자 가능 코인 개수: {self.investment_size}")
+        self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
+
         return False
     
     def start_research(self, day):
@@ -190,7 +193,7 @@ class Upbit_User:
                     
                     else: # 투자 전 일 때
                         if realtime_price <= self.coin[coin]["buy_price"]:
-                            self.buy_coin(coin, realtime_price, self.budget // max(len(self.coin), 2))
+                            self.buy_coin(coin, realtime_price, self.investment_amount)
 
                     time.sleep(1)
                 

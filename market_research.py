@@ -92,20 +92,20 @@ def regression_actual(learning_data):
     estimate_data = pandas.DataFrame({"open": ind_test["open"], "close": de_test["close"], 
                                       "predict_close": estimate[:, 0], "predict_high": estimate[:, 1], "predict_low": estimate[:, 2]})
     
-    # right_count, predict_count = 0, 0
-    # for index, data in estimate_data.iterrows():
-    #     if data["predict_close"] - data["open"] > 0:
-    #         predict_count += 1
+    right_count, predict_count = 0, 0
+    for index, data in estimate_data.iterrows():
+        if data["predict_close"] - data["open"] > 0:
+            predict_count += 1
 
-    #     if data["predict_close"] - data["open"] > 0 and data["close"] - data["open"] > 0:
-    #         right_count += 1
+        if data["predict_close"] - data["open"] > 0 and data["close"] - data["open"] > 0:
+            right_count += 1
 
     ### 당일 종가 예측
     latest_info = latest_data[features].values.reshape(1, -1)
     predict = model.predict(latest_info)
     
-    # accuracy = right_count / predict_count if predict_count > 0 else 0
-    accuracy = ([predict[0][0]] - predict[0][2]) / predict[0][2]
+    accuracy = right_count / predict_count if predict_count > 0 else 0
+    # accuracy = ([predict[0][1]] - predict[0][2]) / predict[0][2]
     
     return [predict[0][1], predict[0][2], predict[0][0], accuracy]
 
