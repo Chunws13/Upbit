@@ -53,19 +53,19 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             # print(ticker, ":", accuracy)
             predict_profit = (predict_high - predict_low) / predict_low * 100
             
-            # if accuracy > 0.6:
-            if len(bull_market) < invest_number:
-                heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
-                continue
-            
-            if predict_profit > bull_market[0][0]:
-                heapq.heappop(bull_market)
-                heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
+            if accuracy > 0.6:
+                if len(bull_market) < invest_number:
+                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
+                    continue
+                
+                if predict_profit > bull_market[0][0]:
+                    heapq.heappop(bull_market)
+                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
                 
     result = {}  
     while bull_market:
         accuracy, predict_low, predict_high, predict_close, ticker = heapq.heappop(bull_market)
-        result[ticker] = {"high": predict_high, "low": predict_low, "close": predict_close}
+        result[ticker] = {"high": predict_high, "low": predict_low, "close": predict_close, "arc": accuracy}
 
     return result
 
@@ -137,6 +137,6 @@ def regression_test(learning_data): # 모델 테스트
 
 
 if __name__ == "__main__":
-   results = check_bull_market(target_date=datetime.datetime(2024,6,10), invest_number=5)
+   results = check_bull_market(target_date=datetime.datetime(2024,6,17), invest_number=5)
    for result in results:
        print(result, results[result])
