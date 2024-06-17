@@ -34,8 +34,10 @@ class Upbit_User:
         self.today = datetime.datetime.now()
         self.budget = self.user.get_balance("KRW")
         self.investment_size = 5
-
+        self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
+        
         messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
+        
         if len(self.coin):
             messanger.send_message("현재 목표 코인 목록")
 
@@ -49,6 +51,8 @@ class Upbit_User:
 
     def adjust_budget(self):
         self.budget = self.user.get_balance("KRW")
+        self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
+        messanger.send_message(f"잔고 : {self.budget} \n 개당 투자 금액: {self.investment_amount}")
         
         if self.budget <= 10000:
             return True
@@ -67,12 +71,12 @@ class Upbit_User:
                 return False
             
             self.investment_size += 1
-
-        messanger.send_message(f"현재 잔고{round(self.budget, 0):0,} 투자 가능 코인 개수: {self.investment_size}")
+        
         return False
     
     def start_research(self, day):
         messanger.send_message(f"> {day.year}년 {day.month}월 {day.day}일 투자를 시작 합니다.")
+        
         day = datetime.datetime(day.year, day.month, day.day)
         target_coin = check_bull_market(target_date = day, invest_number = self.investment_size) # 시장 조사, 상승 예상되는 코인만 반환됨
         
@@ -190,7 +194,7 @@ class Upbit_User:
                     
                     else: # 투자 전 일 때
                         if realtime_price <= self.coin[coin]["buy_price"]:
-                            self.buy_coin(coin, realtime_price, self.budget // max(len(self.coin), 2))
+                            self.buy_coin(coin, realtime_price, self.investment_amount)
 
                     time.sleep(1)
                 
