@@ -27,11 +27,11 @@ def check_bull_market(target_date, invest_number): # 16 seconds
     bull_market = []
     for ticker in ticker_list:
         if re.match(KRW_CHECKER, ticker):
-            ma_flow_info = safe_call_ticker_chart(ticker, from_date, target_date)
+            ma_flow_info = safe_call_ticker_chart(ticker, from_date, target_date + datetime.timedelta(days=1))
             
             if ma_flow_info is None or len(ma_flow_info) < 180:
                 continue
-            print(ticker, ma_flow_info.iloc[-1])
+            
             ma_flow_info["ma5"] = ma_flow_info["close"].rolling(window=5, min_periods=5).mean().shift(1)
             ma_flow_info["ma20"] = ma_flow_info["close"].rolling(window=20, min_periods=20).mean().shift(1)
             
@@ -50,7 +50,7 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             ma_flow_info['macd_hist'] = ma_flow_info['macd'] - ma_flow_info['macd_signal']
 
             predict_high, predict_low, predict_close, accuracy = regression_actual(ma_flow_info)
-            # print(ticker, ":", accuracy)
+            
             open = ma_flow_info["open"].iloc[-1]
             predict_profit = (predict_high - predict_low) / predict_low * 100
             
