@@ -167,7 +167,7 @@ class Upbit_User:
                         break
                         
                     ### 날짜 갱신, 수익 정보 초기화
-                    self.today = datetime.datetime.now()
+                    self.today = datetime.datetime.now() + datetime.timedelta(days=1)
 
                     db_date = f"{self.today.year}-{self.today.month}-{self.today.day}"
                     history_db = db.history.find_one({"date": db_date})

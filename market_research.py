@@ -31,7 +31,7 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             
             if ma_flow_info is None or len(ma_flow_info) < 180:
                 continue
-
+            print(ticker, ma_flow_info.iloc[-1])
             ma_flow_info["ma5"] = ma_flow_info["close"].rolling(window=5, min_periods=5).mean().shift(1)
             ma_flow_info["ma20"] = ma_flow_info["close"].rolling(window=20, min_periods=20).mean().shift(1)
             
@@ -51,21 +51,22 @@ def check_bull_market(target_date, invest_number): # 16 seconds
 
             predict_high, predict_low, predict_close, accuracy = regression_actual(ma_flow_info)
             # print(ticker, ":", accuracy)
+            open = ma_flow_info["open"].iloc[-1]
             predict_profit = (predict_high - predict_low) / predict_low * 100
             
             if accuracy > 0.6:
                 if len(bull_market) < invest_number:
-                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
+                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, open, ticker])
                     continue
                 
                 if predict_profit > bull_market[0][0]:
                     heapq.heappop(bull_market)
-                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, ticker])
+                    heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, open, ticker])
                 
     result = {}  
     while bull_market:
-        accuracy, predict_low, predict_high, predict_close, ticker = heapq.heappop(bull_market)
-        result[ticker] = {"high": predict_high, "low": predict_low, "close": predict_close, "arc": accuracy}
+        accuracy, predict_low, predict_high, predict_close, open, ticker = heapq.heappop(bull_market)
+        result[ticker] = {"open": open, "high": predict_high, "low": predict_low, "close": predict_close, "arc": accuracy}
 
     return result
 
@@ -137,6 +138,6 @@ def regression_test(learning_data): # 모델 테스트
 
 
 if __name__ == "__main__":
-   results = check_bull_market(target_date=datetime.datetime(2024,6,17), invest_number=5)
+   results = check_bull_market(target_date=datetime.datetime(2024,6,20), invest_number=5)
    for result in results:
        print(result, results[result])
