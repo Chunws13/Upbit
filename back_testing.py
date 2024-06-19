@@ -26,7 +26,6 @@ class Back_Testing:
 
         self.coin_history = {}
         self.error = 0
-        # self.start_date = datetime.datetime(2024, 5, 16)
         self.start_date = datetime.datetime(2024, 6, 17)
 
         self.duration = []
@@ -121,7 +120,7 @@ class Back_Testing:
         print(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(1000000, 0)
+    setting = Back_Testing(1000000, 180)
     setting.simulate()
     
     

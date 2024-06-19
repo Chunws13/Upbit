@@ -5,8 +5,8 @@ from sklearn.ensemble import RandomForestRegressor
 from async_request import get_ticekr_info
     
 def add_indicators(ma_flow_info):
-    ma_flow_info["ma5"] = ma_flow_info["close"].rolling(window=5, min_periods=5).mean().shift(1)
-    ma_flow_info["ma20"] = ma_flow_info["close"].rolling(window=20, min_periods=20).mean().shift(1)
+    ma_flow_info["ma5"] = ma_flow_info["close"].ewm(span=5, adjust=False).mean().shift(1)
+    ma_flow_info["ma20"] = ma_flow_info["close"].ewm(span=20, adjust=False).mean().shift(1)
     
     ma_flow_info["volume7"] = ma_flow_info["volume"].rolling(window=7, min_periods=7).mean().shift(1)
 
