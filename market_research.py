@@ -2,6 +2,7 @@ import pyupbit, heapq, time, datetime, math, pandas
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_absolute_percentage_error
 from async_request import get_ticekr_info
     
 def add_indicators(ma_flow_info):
@@ -34,19 +35,18 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             continue
         
         ma_flow_info = add_indicators(ma_flow_info)
-        predict_high, predict_low, predict_close = regression_actual(ma_flow_info)
+        predict_high, predict_low, predict_close, r2 = regression_actual(ma_flow_info)
 
         open = ma_flow_info["open"].iloc[-1]
         predict_profit = (predict_high - predict_low) / predict_low * 100
         
-        
         if len(bull_market) < invest_number:
-            heapq.heappush(bull_market, [predict_profit, predict_low, predict_high, predict_close, open, ticker])
+            heapq.heappush(bull_market, [r2, predict_low, predict_high, predict_close, open, ticker])
             continue
         
-        if predict_profit > bull_market[0][0]:
+        if r2 > bull_market[0][0]:
             heapq.heappop(bull_market)
-            heapq.heappush(bull_market, [predict_profit, predict_low, predict_high, predict_close, open, ticker])
+            heapq.heappush(bull_market, [r2, predict_low, predict_high, predict_close, open, ticker])
                 
     result = {}  
     while bull_market:
@@ -62,7 +62,7 @@ def regression_actual(learning_data):
     train_data = learning_data.iloc[:-1]
     latest_data = learning_data.iloc[-1]
     
-    features = ["open", "ma5", "ma20", "rsi", "volume7"]
+    features = ["open", "ma5", "ma20", "rsi", "volume7", "macd", "macd_signal", "macd_hist"]
 
     independent = train_data[features]
     dependent = train_data[["close", "high", "low"]]
@@ -70,15 +70,18 @@ def regression_actual(learning_data):
     ind_train, ind_test, de_train, de_test = train_test_split(independent, dependent, test_size=0.2, random_state=40)
     
     model = LinearRegression()
-    
-    ### 사전 평가 - 정확도 확인
     model.fit(ind_train.values, de_train.values)
+
+    ### 사전 평가 - 정확도 확인
+    pred_data = model.predict(ind_test.values)
+
+    r2 = r2_score(de_test, pred_data)
 
     ### 당일 종가 예측
     latest_info = latest_data[features].values.reshape(1, -1)
     predict = model.predict(latest_info)
     
-    return [predict[0][1], predict[0][2], predict[0][0]]
+    return [predict[0][1], predict[0][2], predict[0][0], r2]
 
 
 def regression_test(learning_data): # 모델 테스트
@@ -101,7 +104,7 @@ def regression_test(learning_data): # 모델 테스트
     latest_info = latest_data[features].values.reshape(1, -1)
     predict = model.predict(latest_info)
     
-    # accuracy = right_count / predict_count if predict_count > 0 else 0
+    
     accuracy = ([predict[0][0]] - predict[0][2]) / predict[0][2]
     
     return [predict[0][1], predict[0][2], predict[0][0], accuracy]

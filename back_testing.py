@@ -120,7 +120,7 @@ class Back_Testing:
         print(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(1000000, 180)
+    setting = Back_Testing(1000000, 3)
     setting.simulate()
     
     
