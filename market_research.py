@@ -16,10 +16,10 @@ def add_indicators(ma_flow_info):
     loss = (-diff_info.where(diff_info < 0, 0)).rolling(window=14).mean().shift(1)
     ma_flow_info["rsi"] = 100 - (100 / (1 + (gain / loss)))
     
-    ma_flow_info['ema12'] = ma_flow_info['close'].ewm(span=12, adjust=False).mean()
-    ma_flow_info['ema26'] = ma_flow_info['close'].ewm(span=26, adjust=False).mean()
+    ma_flow_info['ema12'] = ma_flow_info['close'].ewm(span=12, adjust=False).mean().shift(1)
+    ma_flow_info['ema26'] = ma_flow_info['close'].ewm(span=26, adjust=False).mean().shift(1)
     ma_flow_info['macd'] = ma_flow_info['ema12'] - ma_flow_info['ema26']
-    ma_flow_info['macd_signal'] = ma_flow_info['macd'].ewm(span=9, adjust=False).mean()
+    ma_flow_info['macd_signal'] = ma_flow_info['macd'].ewm(span=9, adjust=False).mean().shift(1)
     ma_flow_info['macd_hist'] = ma_flow_info['macd'] - ma_flow_info['macd_signal']
 
     return ma_flow_info
@@ -34,19 +34,19 @@ def check_bull_market(target_date, invest_number): # 16 seconds
             continue
         
         ma_flow_info = add_indicators(ma_flow_info)
-        predict_high, predict_low, predict_close, accuracy = regression_actual(ma_flow_info)
-        
+        predict_high, predict_low, predict_close = regression_actual(ma_flow_info)
+
         open = ma_flow_info["open"].iloc[-1]
         predict_profit = (predict_high - predict_low) / predict_low * 100
         
         
         if len(bull_market) < invest_number:
-            heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, open, ticker])
+            heapq.heappush(bull_market, [predict_profit, predict_low, predict_high, predict_close, open, ticker])
             continue
         
         if predict_profit > bull_market[0][0]:
             heapq.heappop(bull_market)
-            heapq.heappush(bull_market, [accuracy, predict_low, predict_high, predict_close, open, ticker])
+            heapq.heappush(bull_market, [predict_profit, predict_low, predict_high, predict_close, open, ticker])
                 
     result = {}  
     while bull_market:
@@ -62,7 +62,7 @@ def regression_actual(learning_data):
     train_data = learning_data.iloc[:-1]
     latest_data = learning_data.iloc[-1]
     
-    features = ["open", "ma5", "ma20", "rsi", "volume7", "macd", "macd_signal", "macd_hist"]
+    features = ["open", "ma5", "ma20", "rsi", "volume7"]
 
     independent = train_data[features]
     dependent = train_data[["close", "high", "low"]]
@@ -78,9 +78,7 @@ def regression_actual(learning_data):
     latest_info = latest_data[features].values.reshape(1, -1)
     predict = model.predict(latest_info)
     
-    accuracy = ([predict[0][1]] - predict[0][2]) / predict[0][2]
-    
-    return [predict[0][1], predict[0][2], predict[0][0], accuracy]
+    return [predict[0][1], predict[0][2], predict[0][0]]
 
 
 def regression_test(learning_data): # 모델 테스트
@@ -110,6 +108,6 @@ def regression_test(learning_data): # 모델 테스트
 
 
 if __name__ == "__main__":
-   results = check_bull_market(target_date=datetime.datetime(2024,6,19), invest_number=5)
+   results = check_bull_market(target_date=datetime.datetime(2024,6,24), invest_number=5)
    for result in results:
        print(result, results[result])

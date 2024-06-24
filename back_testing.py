@@ -26,7 +26,7 @@ class Back_Testing:
 
         self.coin_history = {}
         self.error = 0
-        self.start_date = datetime.datetime(2024, 6, 17)
+        self.start_date = datetime.datetime(2024, 6, 23)
 
         self.duration = []
         for day in range(duration, 0, -1):
@@ -62,7 +62,7 @@ class Back_Testing:
             for coin in coin_list:
                 coin_seed = int(self.end_seed / len(coin_list))
                 after_coin_seed = 0
-
+                
                 pre_high, pre_low = coin_list[coin]["high"], coin_list[coin]["low"]
 
                 self.end_seed -= coin_seed
