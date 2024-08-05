@@ -1,6 +1,6 @@
 import pyupbit, os, datetime, time, ssl, certifi, traceback
 from dotenv import load_dotenv
-from market_research import check_bull_market
+from market_research import start_research
 from mongodb_connect import MongodbConntect
 from message_bot import Message_Bot
 
@@ -75,14 +75,11 @@ class Upbit_User:
         return False
     
     def start_research(self, day):
-        messanger.send_message(f"> {day.year}년 {day.month}월 {day.day}일 투자를 시작 합니다.")
+        messanger.send_message(f"> {day.year}년 {day.month}월 {day.day}일")
         
         day = datetime.datetime(day.year, day.month, day.day)
-        target_coin = check_bull_market(target_date = day, invest_number = self.investment_size) # 시장 조사, 상승 예상되는 코인만 반환됨
+        target_coin = start_research(target_date = day)
         
-        if len(target_coin) == 0:
-            messanger.send_message("오늘은 투자 대상 코인이 없습니다.")
-
         for coin in target_coin:
             high, low = target_coin[coin]["high"], target_coin[coin]["low"]
             self.coin[coin] = {"buy_price": low, "sell_price": high, "invest": False}
@@ -105,7 +102,7 @@ class Upbit_User:
 
             messanger.send_message(f">코인 매수: {coin}, 매수가: {round(realtime_price, 1)}, 매수액: {invest_price}")
 
-    def sell_coin(self, coin, realtime_price, day):
+    def sell_coin(self, coin, realtime_price):
 
         if self.coin[coin]["invest"]:
             coin_amount = self.user.get_balance(coin)
@@ -128,57 +125,28 @@ class Upbit_User:
                                     {"$set": {"transaction": coin_db["transaction"] + 1, 
                                                 "profit": coin_db["profit"] + profit}})
 
-                ### 투자 이력 갱신
-                delta = 1
-                history_db = db.history.find_one({"date": f"{day.year}-{day.month}-{day.day}"})
-                while history_db is None:
-                    day -= datetime.timedelta(days=delta)
-                    delta -= 1
-                    history_db = db.history.find_one({"date": f"{day.year}-{day.month}-{day.day}"})
-
-                db.history.update_one({"date": f"{day.year}-{day.month}-{day.day}"}, 
-                                    {"$set": {"profit": history_db["profit"] + profit}})
-
         return coin
 
-    def delete_coin_info(self, coin):
-        ### 코인 보유 목록 삭제
-        del self.coin[coin]
-        db.asset.update_one({"title": "coin_asset"}, {"$set": {"own": self.coin}})
 
     def start(self):
         try:
             while True:
                 if datetime.datetime.now().hour == 9 and datetime.datetime.now().minute == 0 and datetime.datetime.now().second <= 5:
-                    delete_list = []
                     
                     for coin in self.coin:
                         realtime_price = pyupbit.get_current_price(coin)
                         coin_result = self.sell_coin(coin, realtime_price, self.today)
-                        delete_list.append(coin_result)
                     
-                    for delete in delete_list:
-                        self.delete_coin_info(delete)
 
                     invest_stop_signal = self.adjust_budget()
-                    
-                    if invest_stop_signal:
-                        messanger.send_message(f"최소 투자금액 미달 입니다. 현재 잔고: {round(self.budget, 2):2,}")
-                        break
                         
                     ### 날짜 갱신, 수익 정보 초기화
                     self.today = datetime.datetime.now()
 
                     db_date = f"{self.today.year}-{self.today.month}-{self.today.day}"
-                    history_db = db.history.find_one({"date": db_date})
-
-                    if history_db is None:
-                        today_history = {"date": db_date, "profit": 0}
-                        db.history.insert_one(today_history)
 
                     self.start_research(day = self.today)
 
-                delete_list = []
                 for coin in self.coin:
                     try:
                         realtime_price = pyupbit.get_current_price(coin)
@@ -190,16 +158,12 @@ class Upbit_User:
                     if self.coin[coin]["invest"]: # 투자 중 일 때
                         if realtime_price >= self.coin[coin]["sell_price"]:
                             sell_complete = self.sell_coin(coin, realtime_price, self.today)
-                            delete_list.append(sell_complete)
                     
                     else: # 투자 전 일 때
                         if realtime_price <= self.coin[coin]["buy_price"]:
                             self.buy_coin(coin, realtime_price, self.investment_amount)
 
                     time.sleep(1)
-                
-                for delete in delete_list:
-                    self.delete_coin_info(delete)
 
         except Exception as error:
             messanger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")

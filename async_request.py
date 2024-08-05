@@ -24,7 +24,7 @@ async def fetch_price(session, ticker, date):
     params = {
         'market': ticker,
         'to': date.strftime("%Y-%m-%dT%H:%M:%S"),
-        'count': 200
+        'count': 21
     }
 
     async with session.get(url, params=params) as response:
@@ -54,7 +54,8 @@ async def fetch_prices(tickers, end_date):
         return dictionary_info
 
 def get_ticekr_info(target_date):
-    tickers = pyupbit.get_tickers("KRW")
+    # tickers = pyupbit.get_tickers("KRW")
+    tickers = ["KRW-BTC", "KRW-SOL", "KRW-XRP", "KRW-ETH"]
     tickers_info = asyncio.run(fetch_prices(tickers, target_date))
     return tickers_info
 
