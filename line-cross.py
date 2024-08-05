@@ -44,14 +44,15 @@ class Back_Testing:
 
             coin_list = ["KRW-SOL", "KRW-BTC", "KRW-ETH", "KRW-XRP"]
             
+            investing = 0
+            for c in self.coin_info:
+                if self.coin_info[c]['amount'] != 0:
+                    investing += 1
+            
+            coin_seed = int(self.end_seed // (len(coin_list) - investing)) if investing != 4 else 0
+            
             for coin in coin_list:
-                investing = 0
-                for c in self.coin_info:
-                    if self.coin_info[c]['amount'] != 0:
-                        investing += 1
-
-                coin_seed = int(self.end_seed // len(coin_list) - investing)
-
+            
                 if coin not in self.coin_history:
                     self.coin_history[coin] = 0
 
@@ -70,22 +71,26 @@ class Back_Testing:
                 signal_check = self.signal(today_data["ma5"], today_data["ma20"])
                 
                 if signal_check == "buy" and self.coin_info[coin]["amount"] == 0:
-                    print(f"{coin}코인 구매 : {today_data['open']}")
+                    print(f"{coin}코인 구매 : {round(today_data['open']):,}")
 
                     buy_info = {"buy_price": today_data["open"], "amount": coin_seed}
                     self.end_seed -= coin_seed
                     self.coin_info[coin] = buy_info
                 
                 elif signal_check == "sell" and self.coin_info[coin]["amount"] != 0:
-                    profit = (1 - (today_data["open"] / self.coin_info[coin]["buy_price"])) * self.coin_info[coin]["amount"]
+                    profit = ((today_data["open"] / self.coin_info[coin]["buy_price"]) - 1) * self.coin_info[coin]["amount"]
 
-                    print(f"{coin}코인 판매, 판매가: {today_data['open']} 수익 : {profit}")
+                    print(f"{coin}코인 판매, 판매가: {round(today_data['open']):,} 수익 : {round(profit):,}")
                     self.end_seed += (profit + self.coin_info[coin]["amount"])
                     self.coin_info[coin] = {'buy_price': 0, "amount": 0}
             
             for info in self.coin_info:
                 print(f"{info} : {self.coin_info[info]}")
-
+            
+            print("KRW : ", f"{round(self.end_seed):,} ")
+            
+            print('')
+            
         for info in self.coin_info:
             self.end_seed += self.coin_info[info]["amount"]
 
@@ -95,7 +100,7 @@ class Back_Testing:
         print(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
 
 if __name__ == "__main__":
-    setting = Back_Testing(1000000, 1)
+    setting = Back_Testing(1000000, 365)
     setting.simulate()
     
     
