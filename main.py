@@ -18,13 +18,11 @@ db = MongodbConntect("coin")
 
 class Upbit_User:
     
-    # 9시가 되면 
-    # 1. 보유한 코인을 모두 매도한다. -> self.coin 을 초기화한다.
-    # 2. 잔고를 확인하고 최대 투자 개수를 파악한다. (최대 5개)
-    # 2. 시장 조사를 실시한다. -> 투자 대상 코인 목록을 불러온다 {coint: {}}
-    # 3. 시드는 total balance // 투자 코인 개수로 정한다.
-    # 4. 코인 별 {target_price: int, realtime_price: int} 로 초기화 한다.
-    # 5. 목표 코인에 대한 가격을 1초마다 확인한다.
+    # 9시에 Make.com에서 Post 요청
+    # 보유 코인 목록 조회 -> 개수 만큼 투자 대상에서 차감
+    
+    # 전일자 기준 매도 / 매수 기준을 충족했는지 확인 (MA5 vs MA20)
+    # 충족 시 투자 실행
     
     def __init__(self, access_key, secret_key):
         self.user = pyupbit.Upbit(access_key, secret_key)
@@ -33,61 +31,22 @@ class Upbit_User:
 
         self.today = datetime.datetime.now()
         self.budget = self.user.get_balance("KRW")
-        self.investment_size = 5
-        self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
         
         messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
-        
-        if len(self.coin):
-            messanger.send_message("현재 목표 코인 목록")
-
-            for coin in self.coin:
-                buy_price, sell_price = self.coin[coin]["buy_price"], self.coin[coin]["sell_price"]
-                if self.coin[coin]["invest"]:
-                    messanger.send_message(f"{coin} 매수가: {round(buy_price, 1)} 매도가: {round(sell_price, 1)} 보유중")
-                
-                else:
-                    messanger.send_message(f"{coin} 매수가: {round(buy_price, 1)} 매도가: {round(sell_price, 1)} 투자 예정")
-
+    
     def adjust_budget(self):
+        # 판매 대상 코인을 모두 판매한 후에 실행
+        # KRW 정보 최신화 / (투자 대상 - 투자 예정) = 개당 투자 금액
+        # Return : seed
         self.budget = self.user.get_balance("KRW")
-        self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
-        messanger.send_message(f"잔고 : {self.budget} \n 개당 투자 금액: {self.investment_amount}")
-        
-        if self.budget <= 10000:
-            return True
-        
-        # 1개당 투자 금액 계산
-        # 개당 투자 금액이 2만원 미만이면 개수 줄임 (최소 1개)
-        # 개당 투자 금액이 2만원 이상이면 개수 올림 (최대 5개)
-        while self.budget // self.investment_size < 10000:
-            if self.investment_size == 1:
-                return False
-            
-            self.investment_size -= 1
-        
-        while self.budget // self.investment_size > 20000:
-            if self.investment_size == 5:
-                return False
-            
-            self.investment_size += 1
-        
-        return False
     
     def start_research(self, day):
-        messanger.send_message(f"> {day.year}년 {day.month}월 {day.day}일")
-        
+        # 코인 별 매수/ 매도 의견 취합
+        # Returns : {coin : Buy or Sell}
+
         day = datetime.datetime(day.year, day.month, day.day)
         target_coin = start_research(target_date = day)
         
-        for coin in target_coin:
-            high, low = target_coin[coin]["high"], target_coin[coin]["low"]
-            self.coin[coin] = {"buy_price": low, "sell_price": high, "invest": False}
-            db.asset.update_one({"title": "coin_asset"}, {"$set": {"own": self.coin}})
-            
-            messanger.send_message(f"{coin}: 매수 지점: {round(low, 1):1,} 매도 지점: {round(high, 1):1,}")
-            
-        self.research_status = True
         
     def buy_coin(self, coin, realtime_price, budget):
         result =  self.user.buy_market_order(coin, budget)
@@ -157,7 +116,7 @@ class Upbit_User:
 
                     if self.coin[coin]["invest"]: # 투자 중 일 때
                         if realtime_price >= self.coin[coin]["sell_price"]:
-                            sell_complete = self.sell_coin(coin, realtime_price, self.today)
+                            self.sell_coin(coin, realtime_price, self.today)
                     
                     else: # 투자 전 일 때
                         if realtime_price <= self.coin[coin]["buy_price"]:
@@ -169,4 +128,4 @@ class Upbit_User:
             messanger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
         
 if __name__ == "__main__":
-    Upbit_User(access_key=access_key, secret_key=secret_key).start()
+    Upbit_User(access_key=access_key, secret_key=secret_key).check(["KRW-ETH"])

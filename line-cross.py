@@ -42,14 +42,14 @@ class Back_Testing:
         for day in self.duration:
             print("===", day, "===")
 
-            coin_list = ["KRW-SOL", "KRW-BTC", "KRW-ETH", "KRW-XRP"]
+            coin_list = ["KRW-HPO"]
             
             investing = 0
             for c in self.coin_info:
                 if self.coin_info[c]['amount'] != 0:
                     investing += 1
             
-            coin_seed = int(self.end_seed // (len(coin_list) - investing)) if investing != 4 else 0
+            coin_seed = int(self.end_seed // (len(coin_list) - investing)) if investing != len(coin_list) else 0
             
             for coin in coin_list:
             

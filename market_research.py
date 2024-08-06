@@ -5,30 +5,29 @@ from sklearn.metrics import r2_score
 from async_request import get_ticekr_info
     
 def add_indicators(ma_flow_info):
+    ma_flow_info["close"] = ma_flow_info["close"].shift(1)
     ma_flow_info["ma5"] = ma_flow_info["close"].rolling(window=5, min_periods=5).mean()
     ma_flow_info["ma20"] = ma_flow_info["close"].rolling(window=20, min_periods=20).mean()
 
     return ma_flow_info
     
 def start_research(target_date):
-    ticker_list = get_ticekr_info(target_date + datetime.timedelta(days=1))
+    tickers = ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-XRP"]
+    ticker_list = get_ticekr_info(target_date + datetime.timedelta(days=1), tickers)
     
     result = {}
 
     for ticker in ticker_list:
         coin_chart = ticker_list[ticker]    
         coin_chart_ma_flow = add_indicators(coin_chart)
-        print(coin_chart)
-        ma5, ma20 = coin_chart_ma_flow.iloc[-1]["ma5"], coin_chart_ma_flow.iloc[-1]["ma20"]
-        opinion = "hold"
-
-        if ma5 >= ma20:
-            opinion = "buy"
         
-        elif ma5 < ma20:
-            opinion = "sell"
+        ma5, ma20 = coin_chart_ma_flow.iloc[-1]["ma5"], coin_chart_ma_flow.iloc[-1]["ma20"]
+        
+        opinion = "Buy" if ma5 >= ma20 else "Sell"
+        separation = round((ma5 - ma20) / ma20 * 100, 2)
 
-        result[ticker] = opinion
+        investment_opinion = {"opinion" : opinion, "separation" : separation}
+        result[ticker] = investment_opinion
 
     return result
 
@@ -62,6 +61,6 @@ def regression_actual(learning_data):
 
 
 if __name__ == "__main__":
-   results = start_research(target_date=datetime.datetime(2024,8,5))
+   results = start_research(target_date=datetime.datetime(2024,8,6))
    for result in results:
        print(result, results[result])

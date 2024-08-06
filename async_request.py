@@ -53,10 +53,8 @@ async def fetch_prices(tickers, end_date):
 
         return dictionary_info
 
-def get_ticekr_info(target_date):
-    # tickers = pyupbit.get_tickers("KRW")
-    tickers = ["KRW-BTC", "KRW-SOL", "KRW-XRP", "KRW-ETH"]
-    tickers_info = asyncio.run(fetch_prices(tickers, target_date))
+def get_ticekr_info(target_date, ticker_list):
+    tickers_info = asyncio.run(fetch_prices(ticker_list, target_date))
     return tickers_info
 
 if __name__ == "__main__":
