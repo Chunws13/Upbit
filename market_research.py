@@ -5,30 +5,46 @@ from sklearn.metrics import r2_score
 from async_request import get_ticekr_info
     
 def add_indicators(ma_flow_info):
-    ma_flow_info["close"] = ma_flow_info["close"].shift(1)
+    # 이동평균 지수를 구하는 함수
     ma_flow_info["ma5"] = ma_flow_info["close"].rolling(window=5, min_periods=5).mean()
     ma_flow_info["ma20"] = ma_flow_info["close"].rolling(window=20, min_periods=20).mean()
 
     return ma_flow_info
+
+def make_opinion(coin_chart):
+    # 골든 / 데드 크로스 구하는 함수
+    pre_ma5, pre_ma20 = coin_chart.iloc[-2]["ma5"], coin_chart.iloc[-2]["ma20"]
+    ma5, ma20 = coin_chart.iloc[-1]["ma5"], coin_chart.iloc[-1]["ma20"]
     
-def start_research(target_date):
-    tickers = ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-XRP"]
-    ticker_list = get_ticekr_info(target_date + datetime.timedelta(days=1), tickers)
+    price = coin_chart.iloc[-1]["close"]
+    inclination = round((ma5 - ma20) / ma20 * 100, 2)
+    opinion = "Hold"
+
+    if pre_ma5 < pre_ma20 and ma5 >= ma20:
+        opinion = "Buy"
+    
+    elif pre_ma5 > pre_ma20 and ma5 <= ma20:
+        opinion = "Sell"
+    
+    investment_opinion = {"opinion": opinion, "inclination": inclination, "price": price}
+    
+    return investment_opinion
+
+
+def start_research(target_date, tickers, minutes=None):
+    ticker_list = get_ticekr_info(target_date, tickers, minutes)
     
     result = {}
 
     for ticker in ticker_list:
-        coin_chart = ticker_list[ticker]    
+        coin_chart = ticker_list[ticker]
+
+        if coin_chart is None or len(coin_chart) < 21:
+            continue
+
         coin_chart_ma_flow = add_indicators(coin_chart)
-        
-        ma5, ma20 = coin_chart_ma_flow.iloc[-1]["ma5"], coin_chart_ma_flow.iloc[-1]["ma20"]
-        
-        opinion = "Buy" if ma5 >= ma20 else "Sell"
-        separation = round((ma5 - ma20) / ma20 * 100, 2)
-
-        investment_opinion = {"opinion" : opinion, "separation" : separation}
-        result[ticker] = investment_opinion
-
+        result[ticker] = make_opinion(coin_chart_ma_flow)
+    
     return result
 
 
@@ -61,6 +77,10 @@ def regression_actual(learning_data):
 
 
 if __name__ == "__main__":
-   results = start_research(target_date=datetime.datetime(2024,8,6))
-   for result in results:
-       print(result, results[result])
+   tickers = ["KRW-BTC"]
+   target_date = datetime.datetime(2024,8,7) - datetime.timedelta(hours=9)
+   print(pyupbit.get_ohlcv("KRW-BTC", interval="minute10", count=21, to=target_date))
+   
+#    results = start_research(target_date=target_date, tickers=tickers)
+#    for result in results:
+#        print(result, results[result])

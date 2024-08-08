@@ -17,7 +17,7 @@ def coin_trade(coin_list:Coin_list):
     secret_key = os.getenv("UPBIT_SCCRET_KEY")
 
     mywallet = Upbit_User(access_key, secret_key)
-    for coin in coin_list:
-        mywallet.check(coin)
+    
+    mywallet.start(coin_list)
 
     return

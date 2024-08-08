@@ -21,7 +21,7 @@ class Back_Testing:
         self.coin_history = {}
 
         self.error = 0
-        self.start_date = datetime.datetime(2024, 8, 4)
+        self.start_date = datetime.datetime(2024, 8, 7)
 
         self.duration = []
         for day in range(duration, 0, -1):
@@ -42,7 +42,7 @@ class Back_Testing:
         for day in self.duration:
             print("===", day, "===")
 
-            coin_list = ["KRW-HPO"]
+            coin_list = ["KRW-SOL"]
             
             investing = 0
             for c in self.coin_info:
@@ -83,6 +83,7 @@ class Back_Testing:
                     print(f"{coin}코인 판매, 판매가: {round(today_data['open']):,} 수익 : {round(profit):,}")
                     self.end_seed += (profit + self.coin_info[coin]["amount"])
                     self.coin_info[coin] = {'buy_price': 0, "amount": 0}
+                    self.coin_history[coin] += profit
             
             for info in self.coin_info:
                 print(f"{info} : {self.coin_info[info]}")
@@ -98,6 +99,8 @@ class Back_Testing:
         print(f"테스트 기간: {len(self.duration)}일")
         print(f"시작 금액 : {self.start_seed:2,} \n마감 금액 : {int(self.end_seed):2,}")
         print(f"수익률: {round((self.end_seed - self.start_seed) / self.start_seed * 100, 2):2,}%")
+        for coin in self.coin_history:
+            print(coin, f"{round(self.coin_history[coin]):,}")
 
 if __name__ == "__main__":
     setting = Back_Testing(1000000, 365)

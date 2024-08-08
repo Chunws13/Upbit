@@ -16,6 +16,7 @@ def data_format(response_data):
     df = pandas.DataFrame(ticker_data)
     df['date'] = pandas.to_datetime(df['date'])
     df.set_index('date', inplace=True)
+    
     return df
 
 
@@ -23,7 +24,6 @@ async def fetch_price(session, ticker, date, minutes=None):
     url = f"https://api.upbit.com/v1/candles/days"
     
     if minutes is not None:
-        date -= datetime.timedelta(hours=9)
         url = f"https://api.upbit.com/v1/candles/minutes/{minutes}"
             
     params = {
@@ -34,12 +34,12 @@ async def fetch_price(session, ticker, date, minutes=None):
 
     async with session.get(url, params=params) as response:
         data = await response.json()
-
         if response.status == 429:
             await asyncio.sleep(1)
             return await fetch_price(session, ticker, date, minutes)
         
         data_frame = data_format(data)
+        
         return [ticker, data_frame]
     
 
@@ -64,7 +64,7 @@ def get_ticekr_info(target_date, ticker_list, minutes=None):
 if __name__ == "__main__":
     # 분 단위 요청을 하면 UTC 기준으로 데이터가 반환된다 
     # 함수에 분 단위로 요청이 들어오면 9시간을 빼서 구현
-    tickers_info = get_ticekr_info(datetime.datetime(2024, 8, 6), ["KRW-BTC"], 10)
+    tickers_info = get_ticekr_info(datetime.datetime(2024, 8, 5,0 ,10), ["KRW-STRAX"], 10)
     for ticker in tickers_info:
         print(ticker, tickers_info[ticker])
     

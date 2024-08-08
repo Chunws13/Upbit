@@ -12,7 +12,7 @@ secret_key= os.getenv("UPBIT_SCCRET_KEY")
 slack_token = os.getenv("SLACK_TOKEN")
 slack_channel = os.getenv("SLACK_LIVE_CHANNE")
 ssl_context = ssl.create_default_context(cafile=certifi.where())
-messanger = Message_Bot(token=slack_token, channel=slack_channel, ssl=ssl_context)
+messenger = Message_Bot(token=slack_token, channel=slack_channel, ssl=ssl_context)
 
 db = MongodbConntect("coin")
 
@@ -26,106 +26,88 @@ class Upbit_User:
     
     def __init__(self, access_key, secret_key):
         self.user = pyupbit.Upbit(access_key, secret_key)
-
-        self.coin = db.asset.find_one({"title": "coin_asset"})["own"]
-
         self.today = datetime.datetime.now()
-        self.budget = self.user.get_balance("KRW")
-        
-        messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
-    
-    def adjust_budget(self):
-        # 판매 대상 코인을 모두 판매한 후에 실행
-        # KRW 정보 최신화 / (투자 대상 - 투자 예정) = 개당 투자 금액
-        # Return : seed
-        self.budget = self.user.get_balance("KRW")
-    
-    def start_research(self, day):
-        # 코인 별 매수/ 매도 의견 취합
-        # Returns : {coin : Buy or Sell}
 
-        day = datetime.datetime(day.year, day.month, day.day)
-        target_coin = start_research(target_date = day)
+        messenger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 투자 분석을 시작합니다.")
+    
+    def check_ticker_own(self, coin):
+        result = self.user.get_balance(ticker=coin, verbose=True)
+        return result if result != 0 else None
+            
         
-        
-    def buy_coin(self, coin, realtime_price, budget):
-        result =  self.user.buy_market_order(coin, budget)
-        invest_price = budget
+    def buy_coin(self, ticker, invest_amount):
+        result =  self.user.buy_market_order(ticker, invest_amount)
 
         if result is not None:
-            self.coin[coin]["buy_price"] = realtime_price
-            self.coin[coin]["invest"] = True
-            self.coin[coin]["invest_price"] = invest_price * 0.9995
-            
-            db.asset.update_one({"title": "coin_asset"}, {"$set": {"own": self.coin}})
+            messenger.send_message(f">{ticker} 코인 매수, 매수액: {invest_amount:,}")
 
-            messanger.send_message(f">코인 매수: {coin}, 매수가: {round(realtime_price, 1)}, 매수액: {invest_price}")
+    def sell_coin(self, ticker, coin_amount, avg_buy_price):
+        buy_price = avg_buy_price * coin_amount
 
-    def sell_coin(self, coin, realtime_price):
+        realtime_price = pyupbit.get_current_price(ticker)
 
-        if self.coin[coin]["invest"]:
-            coin_amount = self.user.get_balance(coin)
+        result = self.user.sell_market_order(ticker, coin_amount)
 
-            result = self.user.sell_market_order(coin, coin_amount)
-            if result is not None:
-                sell_market_price = (realtime_price * coin_amount) * 0.9995 
-                profit = sell_market_price - self.coin[coin]["invest_price"]
+        if result is not None:
+            sell_price = (realtime_price * coin_amount) * 0.9995 
+            profit = sell_price - buy_price
 
-                messanger.send_message(f">{coin} 판매금액: {round(sell_market_price, 1)} 수익: {round(profit, 1)}")
+            messenger.send_message(f">{ticker} 판매, 수익: {round(profit):,}")
+            self.update_db(ticker, profit)
 
-                ### 코인 투자 내역 갱신
-                coin_db = db.coin.find_one({"name": coin})
-                if coin_db is None:
-                    coin_data = {"name": coin, "transaction": 1, "profit": profit}
-                    db.coin.insert_one(coin_data)
-                
-                else:
-                    db.coin.update_one({"name": coin}, 
-                                    {"$set": {"transaction": coin_db["transaction"] + 1, 
-                                                "profit": coin_db["profit"] + profit}})
-
-        return coin
-
-
-    def start(self):
+    def update_db(self, ticker, profit):
+        ### 코인 투자 내역 갱신
+        coin_db = db.coin.find_one({"name": ticker})
+        if coin_db is None:
+            coin_data = {"name": ticker, "transaction": 1, "profit": profit}
+            db.coin.insert_one(coin_data)
+        
+        else:
+            db.coin.update_one({"name": ticker}, 
+                            {"$set": {"transaction": coin_db["transaction"] + 1, 
+                                        "profit": coin_db["profit"] + profit}})
+    
+    def start(self, ticker_list):
         try:
-            while True:
-                if datetime.datetime.now().hour == 9 and datetime.datetime.now().minute == 0 and datetime.datetime.now().second <= 5:
-                    
-                    for coin in self.coin:
-                        realtime_price = pyupbit.get_current_price(coin)
-                        coin_result = self.sell_coin(coin, realtime_price, self.today)
-                    
+            # 요청 받은 코인들의 투자 의견을 반환한다
+            year, month, day = self.today.year, self.today.month, self.today.day
 
-                    invest_stop_signal = self.adjust_budget()
-                        
-                    ### 날짜 갱신, 수익 정보 초기화
-                    self.today = datetime.datetime.now()
+            tickers_opinion = start_research(datetime.datetime(year, month, day), ticker_list)
 
-                    db_date = f"{self.today.year}-{self.today.month}-{self.today.day}"
+            for ticker in tickers_opinion: # 판매
+                messenger.send_message(f"{ticker} 코인 의견 : {tickers_opinion[ticker]['opinion']} ({tickers_opinion[ticker]['inclination']}) ")
 
-                    self.start_research(day = self.today)
+                ticker_info = self.check_ticker_own(ticker)
 
-                for coin in self.coin:
-                    try:
-                        realtime_price = pyupbit.get_current_price(coin)
-                    
-                    except:
-                        # 현재 가격 요청 에러 확인, 에러 발생시 한번 건너뛰기
-                        continue
+                if tickers_opinion[ticker]["opinion"] == "Sell" and ticker_info is not None:
+                    amount, avg_buy_pirce = ticker_info["balance"], ticker_info["avg_buy_price"]
+                    self.sell_coin(ticker, amount, avg_buy_pirce)
 
-                    if self.coin[coin]["invest"]: # 투자 중 일 때
-                        if realtime_price >= self.coin[coin]["sell_price"]:
-                            self.sell_coin(coin, realtime_price, self.today)
-                    
-                    else: # 투자 전 일 때
-                        if realtime_price <= self.coin[coin]["buy_price"]:
-                            self.buy_coin(coin, realtime_price, self.investment_amount)
+                time.sleep(1)
+
+            budget = self.user.get_balance("KRW")
+            investment_size = 0
+            
+            for ticker in ticker_list: # 투자 예정인 코인 수
+                check = self.check_ticker_own(ticker)
+                if check is not None:
+                    investment_size += 1
+                
+                time.sleep(1)
+            
+            if investment_size != 0:
+                invest_amount = budget // investment_size
+
+                for ticker in tickers_opinion: # 구매
+                    ticker_info = self.check_ticker_own(ticker)
+
+                    if tickers_opinion[ticker]["opinion"] == "Sell" and ticker_info is None:
+                        self.buy_coin(ticker, invest_amount)
 
                     time.sleep(1)
 
         except Exception as error:
-            messanger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
+            messenger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
         
 if __name__ == "__main__":
     Upbit_User(access_key=access_key, secret_key=secret_key).check(["KRW-ETH"])
