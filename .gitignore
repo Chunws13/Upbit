@@ -1,4 +1,6 @@
 .env
 coin/*
 upbit/*
+__pycache__
+.github
 .coin
