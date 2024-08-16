@@ -149,7 +149,7 @@ class Upbit_User:
     def start(self):
         try:
             while True:
-                if datetime.datetime.now().hour == 9 and datetime.datetime.now().minute == 0 and datetime.datetime.now().second <= 5:
+                if datetime.datetime.now().hour == 9 and datetime.datetime.now().minute == 1 and datetime.datetime.now().second <= 5:
                     delete_list = []
                     
                     for coin in self.coin:

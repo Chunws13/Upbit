@@ -28,7 +28,11 @@ def add_indicators(ma_flow_info):
 def check_bull_market(target_date, invest_number): # 16 seconds
     ticker_list = get_ticekr_info(target_date + datetime.timedelta(days=1))
     bull_market = []
+    skip_list = ["KRW-BTC", "KRW-SOL", "KRW-XRP", "KRW-ETH"]
     for ticker in ticker_list:
+        if ticker in skip_list:
+            continue
+        
         ma_flow_info = ticker_list[ticker]
         
         if ma_flow_info is None or len(ma_flow_info) < 180:
@@ -111,6 +115,6 @@ def regression_test(learning_data): # 모델 테스트
 
 
 if __name__ == "__main__":
-   results = check_bull_market(target_date=datetime.datetime(2024,6,24), invest_number=5)
+   results = check_bull_market(target_date=datetime.datetime(2024,8,16), invest_number=5)
    for result in results:
        print(result, results[result])
