@@ -90,7 +90,7 @@ class Upbit_User:
             
             for ticker in ticker_list: # 투자 예정인 코인 수
                 check = self.check_ticker_own(ticker)
-                if check is not None:
+                if check is None:
                     investment_size += 1
                 
                 time.sleep(1)
