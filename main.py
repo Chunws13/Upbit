@@ -80,7 +80,7 @@ class Upbit_User:
                 ticker_info = self.check_ticker_own(ticker)
 
                 if tickers_opinion[ticker]["opinion"] == "Sell" and ticker_info is not None:
-                    amount, avg_buy_pirce = ticker_info["balance"], ticker_info["avg_buy_price"]
+                    amount, avg_buy_pirce = float(ticker_info["balance"]), float(ticker_info["avg_buy_price"])
                     self.sell_coin(ticker, amount, avg_buy_pirce)
 
                 time.sleep(1)
@@ -101,7 +101,7 @@ class Upbit_User:
                 for ticker in tickers_opinion: # 구매
                     ticker_info = self.check_ticker_own(ticker)
 
-                    if tickers_opinion[ticker]["opinion"] == "Sell" and ticker_info is None:
+                    if tickers_opinion[ticker]["opinion"] == "Buy" and ticker_info is None:
                         self.buy_coin(ticker, invest_amount)
 
                     time.sleep(1)
