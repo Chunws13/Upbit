@@ -96,7 +96,7 @@ class Upbit_User:
                 time.sleep(1)
             
             if investment_size != 0:
-                invest_amount = budget // investment_size
+                invest_amount = ((budget // investment_size) // 10) * 10
 
                 for ticker in tickers_opinion: # 구매
                     ticker_info = self.check_ticker_own(ticker)
