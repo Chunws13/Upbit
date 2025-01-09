@@ -2,7 +2,8 @@ import pyupbit, heapq, time, datetime, math, pandas
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
-from async_request import get_ticekr_info
+from async_request_price import get_ticekr_info
+from async_request_volume import get_ticekr_volume_info
     
 def add_indicators(ma_flow_info):
     # 이동평균 지수를 구하는 함수
@@ -47,6 +48,24 @@ def start_research(target_date, tickers, minutes=None):
     
     return result
 
+def research_by_trade_price(target_date, amount):
+    all_tickers = pyupbit.get_tickers("KRW")
+    
+    tickers_data = get_ticekr_info(target_date, all_tickers, 60)
+    target_list = []
+
+    for ticker in tickers_data: # 거래량 계산
+        trade_price = tickers_data[ticker]['trade_price'].tail(24).sum()
+        
+        heapq.heappush(target_list, [trade_price, ticker])
+
+        if len(target_list) > amount:
+            heapq.heappop(target_list)
+
+    target_tickers = [ ticker for trade_price, ticker in target_list ]
+    
+    target_tickers.reverse()
+    return target_tickers
 
 def regression_actual(learning_data):
     learning_data.dropna(inplace=True)
@@ -77,10 +96,9 @@ def regression_actual(learning_data):
 
 
 if __name__ == "__main__":
-   tickers = ["KRW-BTC"]
-   target_date = datetime.datetime(2024,8,7) - datetime.timedelta(hours=9)
-   print(pyupbit.get_ohlcv("KRW-BTC", interval="minute10", count=21, to=target_date))
+#    tickers = ["KRW-BTC"]
+   target_date = datetime.datetime(2025, 1, 9) + datetime.timedelta(hours=9)
    
-#    results = start_research(target_date=target_date, tickers=tickers)
-#    for result in results:
-#        print(result, results[result])
+#    print(pyupbit.get_ohlcv("KRW-BTC", interval="minute10", count=21, to=target_date))
+   research_by_trade_price(target_date, 10)
+    

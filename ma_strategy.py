@@ -21,7 +21,7 @@ class Back_Testing:
         self.coin_history = {}
 
         self.error = 0
-        self.start_date = datetime.datetime(2024, 8, 7)
+        self.start_date = datetime.datetime(2025, 1, 7)
 
         self.duration = []
         for day in range(duration, 0, -1):
@@ -42,7 +42,7 @@ class Back_Testing:
         for day in self.duration:
             print("===", day, "===")
 
-            coin_list = ["KRW-SOL"]
+            coin_list = ["KRW-BTC", "KRW-SOL", "KRW-ETH", "KRW-XRP"]
             
             investing = 0
             for c in self.coin_info:
@@ -103,7 +103,7 @@ class Back_Testing:
             print(coin, f"{round(self.coin_history[coin]):,}")
 
 if __name__ == "__main__":
-    setting = Back_Testing(1000000, 365)
+    setting = Back_Testing(1000000, 1000)
     setting.simulate()
     
     
