@@ -28,12 +28,11 @@ class Upbit_User:
         self.user = pyupbit.Upbit(access_key, secret_key)
         self.today = datetime.datetime.now()
 
-        messenger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 투자 분석을 시작합니다.")
+        messenger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 투자를 시작합니다.")
     
     def check_ticker_own(self, coin):
         result = self.user.get_balance(ticker=coin, verbose=True)
         return result if result != 0 else None
-            
         
     def buy_coin(self, ticker, invest_amount):
         result =  self.user.buy_market_order(ticker, invest_amount)

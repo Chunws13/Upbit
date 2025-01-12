@@ -1,6 +1,4 @@
-import aiohttp, asyncio
-import pandas
-import datetime
+import aiohttp, asyncio, pandas, datetime
 
 def data_format(response_data):
     ticker_data = {"date": [], "open": [], "close": [], "low": [], "high": [], "trade_price": [], "volume": []}

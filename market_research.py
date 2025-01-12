@@ -31,6 +31,22 @@ def make_opinion(coin_chart):
     
     return investment_opinion
 
+def volatility_breakout(target_date, tickers, k = 0.5):
+    ticker_list = get_ticekr_info(target_date, tickers)
+    
+    for ticker in ticker_list:
+        td = ticker_list[ticker].iloc[-2:]
+        
+        td = td.assign(
+            range=td["high"].shift(1) - td["low"].shift(1),
+            target=td["open"] + (td["high"].shift(1) - td["low"].shift(1)) * k
+        )
+        
+        # profit_ratio = 0
+        # if td["target"].iloc[-1] <= td["high"].iloc[-1]:
+        #     profit_ratio += (td["close"].iloc[-1] / td["target"].iloc[-1] - 1)
+        target_price = td["target"].iloc[-1]
+    return target_price
 
 def start_research(target_date, tickers, minutes=None):
     ticker_list = get_ticekr_info(target_date, tickers, minutes)
@@ -97,8 +113,9 @@ def regression_actual(learning_data):
 
 if __name__ == "__main__":
 #    tickers = ["KRW-BTC"]
-   target_date = datetime.datetime(2025, 1, 9) + datetime.timedelta(hours=9)
+   target_date = datetime.datetime(2025, 1, 11) + datetime.timedelta(hours=9)
    
 #    print(pyupbit.get_ohlcv("KRW-BTC", interval="minute10", count=21, to=target_date))
-   research_by_trade_price(target_date, 10)
+   test= volatility_breakout(target_date, ["KRW-SONIC"])
+   print(test)
     
