@@ -1,8 +1,10 @@
 import time, datetime, heapq
+import os, ssl, certifi, sys, datetime
 from dotenv import load_dotenv
-from market_research import start_research, research_by_trade_price
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from market_research import research_by_trade_price
 from message_bot import Message_Bot
-import os, ssl, certifi
 
 load_dotenv()
 

@@ -1,8 +1,9 @@
-import pyupbit, re, time, datetime, math
-from market_research import check_bull_market
+import pyupbit, time, datetime, math, os, sys,ssl
 from dotenv import load_dotenv
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from market_research import check_bull_market
 from message_bot import Message_Bot
-import os, ssl, certifi
 
 load_dotenv()
 

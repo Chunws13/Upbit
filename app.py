@@ -1,23 +1,27 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from main import Upbit_User
-import os
+# from main import Upbit_User
+from volatility_real import Upbit_User
+import os, threading, time, asyncio
 
 app = FastAPI()
 
 class Coin_list(BaseModel):
     coin_list : list
 
+tasks = {}
+loop_control = {}
+
+class Request(BaseModel):
+    id : str
 
 @app.post("/coin")
-def coin_trade(coin_list:Coin_list):
-    coin_list = coin_list.coin_list
-
+def coin_trade():
     access_key = os.getenv("UPBIT_ACCESS_KEY")
     secret_key = os.getenv("UPBIT_SCCRET_KEY")
 
     mywallet = Upbit_User(access_key, secret_key)
     
-    mywallet.start(coin_list)
+    mywallet.start()
 
-    return
+    return "Coin invest Start"

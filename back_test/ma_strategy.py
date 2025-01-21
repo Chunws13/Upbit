@@ -1,7 +1,9 @@
-import pyupbit, re, time, datetime, math
+import os, ssl, certifi, sys, datetime
 from dotenv import load_dotenv
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from market_research import volatility_breakout, research_by_trade_price
 from message_bot import Message_Bot
-import os, ssl, certifi
 
 load_dotenv()
 
@@ -21,7 +23,7 @@ class Back_Testing:
         self.coin_history = {}
 
         self.error = 0
-        self.start_date = datetime.datetime(2025, 1, 7)
+        self.start_date = datetime.datetime(2025, 1, 20)
 
         self.duration = []
         for day in range(duration, 0, -1):

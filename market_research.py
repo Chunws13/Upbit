@@ -42,10 +42,12 @@ def volatility_breakout(target_date, tickers, k = 0.5):
             target=td["open"] + (td["high"].shift(1) - td["low"].shift(1)) * k
         )
         
+        # 백테스트 코드
         # profit_ratio = 0
         # if td["target"].iloc[-1] <= td["high"].iloc[-1]:
         #     profit_ratio += (td["close"].iloc[-1] / td["target"].iloc[-1] - 1)
         target_price = td["target"].iloc[-1]
+        print(td)
     return target_price
 
 def start_research(target_date, tickers, minutes=None):
@@ -113,9 +115,9 @@ def regression_actual(learning_data):
 
 if __name__ == "__main__":
 #    tickers = ["KRW-BTC"]
-   target_date = datetime.datetime(2025, 1, 11) + datetime.timedelta(hours=9)
+   target_date = datetime.datetime(2025, 1, 21) + datetime.timedelta(hours=9)
    
 #    print(pyupbit.get_ohlcv("KRW-BTC", interval="minute10", count=21, to=target_date))
-   test= volatility_breakout(target_date, ["KRW-SONIC"])
+   test = volatility_breakout(target_date, ["KRW-BTC"])
    print(test)
     

@@ -109,4 +109,4 @@ class Upbit_User:
             messenger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
         
 if __name__ == "__main__":
-    Upbit_User(access_key=access_key, secret_key=secret_key).check(["KRW-ETH"])
+    print(Upbit_User(access_key=access_key, secret_key=secret_key).check_ticker_own("KRW-BTC"))
