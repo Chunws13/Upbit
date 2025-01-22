@@ -33,7 +33,7 @@ class Upbit_User:
 
         self.today = datetime.datetime.now()
         self.budget = self.user.get_balance("KRW")
-        self.investment_size = 10
+        self.investment_size = 4
         self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
         
         messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
