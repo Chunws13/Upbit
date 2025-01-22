@@ -1,8 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
-# from main import Upbit_User
 from volatility_real import Upbit_User
-import os, threading, time, asyncio
+import os
 
 app = FastAPI()
 

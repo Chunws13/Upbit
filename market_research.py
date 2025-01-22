@@ -47,7 +47,7 @@ def volatility_breakout(target_date, tickers, k = 0.5):
         # if td["target"].iloc[-1] <= td["high"].iloc[-1]:
         #     profit_ratio += (td["close"].iloc[-1] / td["target"].iloc[-1] - 1)
         target_price = td["target"].iloc[-1]
-        print(td)
+        
     return target_price
 
 def start_research(target_date, tickers, minutes=None):
