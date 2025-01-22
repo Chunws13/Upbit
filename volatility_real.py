@@ -33,9 +33,10 @@ class Upbit_User:
 
         self.today = datetime.datetime.now()
         self.budget = self.user.get_balance("KRW")
+
         self.investment_size = 4
         self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
-        
+
         messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
         
         if len(self.coin):
@@ -51,7 +52,7 @@ class Upbit_User:
 
     def adjust_budget(self):
         self.budget = self.user.get_balance("KRW")
-        self.investment_amount = (self.budget // self.investment_size) // 10000 * 10000
+        self.investment_amount = (self.budget // self.investment_size) // 100 * 100
         messanger.send_message(f"잔고 : {self.budget}")
         
         if self.budget <= 10000:
@@ -64,7 +65,7 @@ class Upbit_User:
         print(f"> {day.year}년 {day.month}월 {day.day}일 투자를 시작 합니다.")
         
         day = datetime.datetime(day.year, day.month, day.day) + datetime.timedelta(hours=9)
-        target_coin = research_by_trade_price(target_date = day, amount= 10) # 거래대금 상위 10개
+        target_coin = ["KRW-BTC", "KRW-XRP", "KRW-ETH", "KRW-SOL"] # 고정 투자 목록
 
         for coin in target_coin:
             target_price = volatility_breakout(day, [coin])
@@ -157,11 +158,14 @@ class Upbit_User:
                         if realtime_price >= self.coin[coin]["buy_price"]:
                             self.buy_coin(coin, realtime_price, self.investment_amount)
 
-                    time.sleep(1)
+                    time.sleep(0.2)
 
         except Exception as error:
             messanger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
         
 if __name__ == "__main__":
-    day = datetime.datetime.now()
-    Upbit_User(access_key=access_key, secret_key=secret_key).start()
+    # day = datetime.datetime.now()
+    # Upbit_User(access_key=access_key, secret_key=secret_key).start_research()
+    while True:
+        print(pyupbit.get_current_price("KRW-BTC"))
+        time.sleep(0.1)
