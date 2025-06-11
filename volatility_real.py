@@ -1,8 +1,9 @@
 import pyupbit, os, datetime, time, ssl, certifi, traceback
 from dotenv import load_dotenv
-from market_research import research_by_trade_price, volatility_breakout
+from market_research import volatility_breakout
 from mongodb_connect import MongodbConntect
 from message_bot import Message_Bot
+import pytz
 
 load_dotenv()
 
@@ -15,6 +16,10 @@ ssl_context = ssl.create_default_context(cafile=certifi.where())
 messanger = Message_Bot(token=slack_token, channel=slack_channel, ssl=ssl_context)
 
 db = MongodbConntect("coin")
+KST = pytz.timezone('Asia/Seoul')
+
+def get_kst_now():
+    return datetime.datetime.now(KST)
 
 class Upbit_User:
     
@@ -31,7 +36,7 @@ class Upbit_User:
 
         self.coin = db.asset.find_one({"title": "coin_asset"})["own"]
 
-        self.today = datetime.datetime.now()
+        self.today = get_kst_now()
         self.budget = self.user.get_balance("KRW")
 
         self.investment_size = 4
@@ -90,27 +95,23 @@ class Upbit_User:
             messanger.send_message(f">코인 매수: {coin}, 매수가: {round(realtime_price, 1)}, 매수액: {invest_price}")
 
     def sell_coin(self, coin):
+        coin_amount = self.user.get_balance(coin)
 
-        if self.coin[coin]["invest"]:
-            coin_amount = self.user.get_balance(coin)
+        result = self.user.sell_market_order(coin, coin_amount)
+        if result is not None:
+            sell_market_price = (self.coin[coin]["invest_price"] * coin_amount) * 0.9995 
+            profit = sell_market_price - self.coin[coin]["invest_price"]
 
-            result = self.user.sell_market_order(coin, coin_amount)
-            if result is not None:
-                sell_market_price = (self.coin[coin]["invest_price"] * coin_amount) * 0.9995 
-                profit = sell_market_price - self.coin[coin]["invest_price"]
-
-                messanger.send_message(f">{coin} 판매금액: {round(sell_market_price, 1)} 수익: {round(profit, 1)}")
-
-                ### 코인 투자 내역 갱신
-                coin_db = db.coin.find_one({"name": coin})
-                if coin_db is None:
-                    coin_data = {"name": coin, "transaction": 1, "profit": profit}
-                    db.coin.insert_one(coin_data)
-                
-                else:
-                    db.coin.update_one({"name": coin}, 
-                                    {"$set": {"transaction": coin_db["transaction"] + 1, 
-                                                "profit": coin_db["profit"] + profit}})
+            ### 코인 투자 내역 갱신
+            coin_db = db.coin.find_one({"name": coin})
+            if coin_db is None:
+                coin_data = {"name": coin, "transaction": 1, "profit": profit}
+                db.coin.insert_one(coin_data)
+            
+            else:
+                db.coin.update_one({"name": coin}, 
+                                {"$set": {"transaction": coin_db["transaction"] + 1, 
+                                            "profit": coin_db["profit"] + profit}})
 
         return coin
 
@@ -122,7 +123,7 @@ class Upbit_User:
     def start(self):
         try:
             while True:
-                if datetime.datetime.now().hour == 9 and datetime.datetime.now().minute == 0 and datetime.datetime.now().second <= 5:
+                if get_kst_now().hour == 9 and get_kst_now().minute == 0 and get_kst_now().second <= 5:
                     delete_list = []
                     
                     for coin in self.coin:
