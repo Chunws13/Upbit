@@ -164,8 +164,4 @@ class Upbit_User:
             messanger.send_message(f"오류 발생으로 중단됩니다. \n{error} \n{traceback.print_exc()}")
         
 if __name__ == "__main__":
-    # day = datetime.datetime.now()
-    # Upbit_User(access_key=access_key, secret_key=secret_key).start_research()
-    while True:
-        print(pyupbit.get_current_price("KRW-BTC"))
-        time.sleep(0.1)
+    Upbit_User(access_key=access_key, secret_key=secret_key).start()
