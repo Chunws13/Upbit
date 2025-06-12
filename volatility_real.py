@@ -88,7 +88,6 @@ class Upbit_User:
         if result is not None:
             self.coin[coin]["buy_price"] = realtime_price
             self.coin[coin]["invest"] = True
-            self.coin[coin]["invest_price"] = invest_price * 0.9995
             
             db.asset.update_one({"title": "coin_asset"}, {"$set": {"own": self.coin}})
 
@@ -96,23 +95,7 @@ class Upbit_User:
 
     def sell_coin(self, coin):
         coin_amount = self.user.get_balance(coin)
-
-        result = self.user.sell_market_order(coin, coin_amount)
-        if result is not None:
-            sell_market_price = (self.coin[coin]["invest_price"] * coin_amount) * 0.9995 
-            profit = sell_market_price - self.coin[coin]["invest_price"]
-
-            ### 코인 투자 내역 갱신
-            coin_db = db.coin.find_one({"name": coin})
-            if coin_db is None:
-                coin_data = {"name": coin, "transaction": 1, "profit": profit}
-                db.coin.insert_one(coin_data)
-            
-            else:
-                db.coin.update_one({"name": coin}, 
-                                {"$set": {"transaction": coin_db["transaction"] + 1, 
-                                            "profit": coin_db["profit"] + profit}})
-
+        self.user.sell_market_order(coin, coin_amount)
         return coin
 
     def delete_coin_info(self, coin):
