@@ -40,7 +40,7 @@ class Upbit_User:
         self.budget = self.user.get_balance("KRW")
 
         self.investment_size = 4
-        self.investment_amount = ((self.budget // self.investment_size) // 10) * 10
+        self.investment_amount = ((self.budget // self.investment_size) // 1000) * 1000
 
         messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
         
@@ -57,7 +57,7 @@ class Upbit_User:
 
     def adjust_budget(self):
         self.budget = self.user.get_balance("KRW")
-        self.investment_amount = ((self.budget // self.investment_size) // 10) * 10
+        self.investment_amount = ((self.budget // self.investment_size) // 1000) * 1000
         messanger.send_message(f"잔고 : {self.budget}")
         
         if self.budget <= 10000:
@@ -123,7 +123,7 @@ class Upbit_User:
                         break
                         
                     ### 날짜 갱신, 수익 정보 초기화
-                    self.today = datetime.datetime.now()
+                    self.today = get_kst_now()
 
                     self.start_research(day = self.today)
 
