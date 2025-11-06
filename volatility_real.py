@@ -32,13 +32,20 @@ class Upbit_User:
     # 5. 목표 코인에 대한 가격을 1초마다 확인한다.
     
     def __init__(self, access_key, secret_key):
+        print(f"[DEBUG] Access Key: {access_key[:10] if access_key else 'None'}...")
+        print(f"[DEBUG] Secret Key: {secret_key[:10] if secret_key else 'None'}...")
         self.user = pyupbit.Upbit(access_key, secret_key)
 
         self.coin = db.asset.find_one({"title": "coin_asset"})["own"]
 
         self.today = get_kst_now()
         self.budget = self.user.get_balance("KRW")
+        
+        print(f"[DEBUG] Budget from API: {self.budget}")
 
+        if self.budget is None:
+            raise ValueError("API 호출 실패: get_balance('KRW')가 None을 반환했습니다. API 키를 확인하세요.")
+            
         self.investment_size = 4
         self.investment_amount = ((self.budget // self.investment_size) // 1000) * 1000
 
