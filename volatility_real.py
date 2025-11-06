@@ -8,7 +8,7 @@ import pytz
 load_dotenv()
 
 access_key = os.getenv("UPBIT_ACCESS_KEY")
-secret_key= os.getenv("UPBIT_SCCRET_KEY")
+secret_key= os.getenv("UPBIT_SECRET_KEY")
 
 slack_token = os.getenv("SLACK_TOKEN")
 slack_channel = os.getenv("SLACK_LIVE_CHANNE")
