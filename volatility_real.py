@@ -43,8 +43,24 @@ class Upbit_User:
         
         print(f"[DEBUG] Budget from API: {self.budget}")
 
+        # API 응답 에러 확인
+        try:
+            balances = self.user.get_balances()
+            print(f"[DEBUG] API Response: {balances}")
+
+            if balances is None:
+                raise ValueError("API 응답이 None입니다. API 키 권한 또는 네트워크를 확인하세요.")
+
+            self.budget = self.user.get_balance("KRW")
+            print(f"[DEBUG] KRW Balance: {self.budget}")
+
+        except Exception as e:
+            print(f"[ERROR] API 호출 실패: {e}")
+            raise
+
         if self.budget is None:
-            raise ValueError("API 호출 실패: get_balance('KRW')가 None을 반환했습니다. API 키를 확인하세요.")
+            self.budget = 0
+            print("[WARNING] KRW 잔고가 0이거나 조회되지 않았습니다.")
             
         self.investment_size = 4
         self.investment_amount = ((self.budget // self.investment_size) // 1000) * 1000
