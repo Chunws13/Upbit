@@ -40,6 +40,8 @@ class Upbit_User:
 
         self.today = get_kst_now()
         self.budget = self.user.get_balance("KRW")
+        print(f"server time : {datetime.datetime.now()}")
+        print(f"KST : {get_kst_now()}")
         
         print(f"[DEBUG] Budget from API: {self.budget}")
 
