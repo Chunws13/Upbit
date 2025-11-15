@@ -4,6 +4,7 @@ from market_research import volatility_breakout
 from mongodb_connect import MongodbConntect
 from message_bot import Message_Bot
 import pytz
+import requests
 
 load_dotenv()
 
@@ -45,6 +46,10 @@ class Upbit_User:
         
         print(f"[DEBUG] Budget from API: {self.budget}")
 
+        response = requests.get('https://icanhazip.com')
+        public_ip = response.text.strip()
+
+        print(f"✅ 현재 Out Bound IP 주소: {public_ip}")
         # API 응답 에러 확인
         try:
             balances = self.user.get_balances()
