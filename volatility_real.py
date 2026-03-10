@@ -19,6 +19,13 @@ messanger = Message_Bot(token=slack_token, channel=slack_channel, ssl=ssl_contex
 db = MongodbConntect("coin")
 KST = pytz.timezone('Asia/Seoul')
 
+STRATEGY_CONFIG = {
+    "KRW-BTC": {"k": 0.4, "weight": 0.5},   # 비트코인 비중 50%, K=0.4
+    "KRW-ETH": {"k": 0.6, "weight": 0.16},  # 이더리움 비중 16%, K=0.6
+    "KRW-XRP": {"k": 0.6, "weight": 0.17},  # 리플 비중 17%, K=0.6
+    "KRW-SOL": {"k": 0.6, "weight": 0.17}   # 솔라나 비중 17%, K=0.6
+}
+
 def get_kst_now():
     return datetime.datetime.now(KST)
 
@@ -58,8 +65,9 @@ class Upbit_User:
             if balances is None:
                 raise ValueError("API 응답이 None입니다. API 키 권한 또는 네트워크를 확인하세요.")
 
-            self.budget = self.user.get_balance("KRW")
-            print(f"[DEBUG] KRW Balance: {self.budget}")
+            actual_cash = self.user.get_balance("KRW")
+            self.budget = actual_cash * 0.99 # 수수료/슬리피지 대비 1% 예약
+            print(f"[DEBUG] KRW Balance: {actual_cash}, Investment Budget: {self.budget}")
 
         except Exception as e:
             print(f"[ERROR] API 호출 실패: {e}")
@@ -69,10 +77,9 @@ class Upbit_User:
             self.budget = 0
             print("[WARNING] KRW 잔고가 0이거나 조회되지 않았습니다.")
             
-        self.investment_size = 4
-        self.investment_amount = ((self.budget // self.investment_size) // 1000) * 1000
-
+        # 초기 메시지 및 설정
         messanger.send_message(f"{self.today.year}년 {self.today.month}월 {self.today.day}일 자동 투자 매매 봇이 연결되었습니다.")
+        messanger.send_message("--- 최종 최적화 전략 적용 (BTC 하중 + K값 차등) ---")
         
         if len(self.coin):
             messanger.send_message("현재 목표 코인 목록")
@@ -86,9 +93,9 @@ class Upbit_User:
                     messanger.send_message(f"{coin} 매수가: {round(buy_price, 1)} 투자 예정")
 
     def adjust_budget(self):
-        self.budget = self.user.get_balance("KRW")
-        self.investment_amount = ((self.budget // self.investment_size) // 1000) * 1000
-        messanger.send_message(f"잔고 : {self.budget}")
+        actual_cash = self.user.get_balance("KRW")
+        self.budget = actual_cash * 0.99 # 수수료/슬리피지 대비 1% 예약
+        messanger.send_message(f"현재 총 잔고 : {actual_cash:,.0f} KRW (투자 예산: {self.budget:,.0f} KRW)")
         
         if self.budget <= 10000:
             return True
@@ -100,14 +107,16 @@ class Upbit_User:
         print(f"> {day.year}년 {day.month}월 {day.day}일 투자를 시작 합니다.")
         
         day = datetime.datetime(day.year, day.month, day.day) + datetime.timedelta(hours=9)
-        target_coin = ["KRW-BTC", "KRW-XRP", "KRW-ETH", "KRW-SOL"] # 고정 투자 목록
+        # 1년 백테스팅 기반 최적 설정 적용
+        target_coin = list(STRATEGY_CONFIG.keys())
 
         for coin in target_coin:
-            target_price = volatility_breakout(day, [coin])
+            k = STRATEGY_CONFIG[coin]["k"]
+            target_price = volatility_breakout(day, [coin], k=k)
             self.coin[coin] = {"buy_price": target_price, "invest": False}
             db.asset.update_one({"title": "coin_asset"}, {"$set": {"own": self.coin}})
             
-            messanger.send_message(f"{coin}: 매수 지점: {round(target_price, 1):1,}")
+            messanger.send_message(f"{coin}: [K={k}] 매수 목표가: {round(target_price, 1):1,}")
             
         self.research_status = True
         
@@ -170,7 +179,10 @@ class Upbit_User:
                     
                     else: # 투자 전 일 때
                         if realtime_price >= self.coin[coin]["buy_price"]:
-                            self.buy_coin(coin, realtime_price, self.investment_amount)
+                            # 종목별 가중치 적용 투자금 계산
+                            weight = STRATEGY_CONFIG[coin]["weight"]
+                            current_invest_amount = ((self.budget * weight) // 1000) * 1000
+                            self.buy_coin(coin, realtime_price, current_invest_amount)
 
                     time.sleep(0.2)
 
